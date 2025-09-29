@@ -8,6 +8,7 @@ FLUTTER_ARCHIVE="flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
 if [ ! -d "flutter" ]; then
   curl -L "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/${FLUTTER_ARCHIVE}" -o flutter_sdk.tar.xz
   tar xf flutter_sdk.tar.xz
+  git config --global --add safe.directory "${PWD}/flutter"
 fi
 
 export PATH="${PWD}/flutter/bin:${PATH}"
