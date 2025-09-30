@@ -6,6 +6,8 @@ import '../services/language_service.dart';
 import '../services/user_profile_service.dart';
 import '../globe/globe_widget.dart';
 import '../globe/globe_states.dart';
+import '../soul/soul_states.dart';
+import '../soul/soul_widget.dart';
 import '../onboarding/onboarding_flow.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -262,53 +264,71 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     super.dispose();
   }
 
-  GlobeConfig _buildGlobeConfig() {
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    // Pick the appropriate globe state for the current welcome step
+  GlobeConfig _buildGlobeConfig(double screenHeight) {
     GlobeConfig config;
-    switch (_currentStep) {
-      case 0:
-        // Step 1: Light state
-        config = GlobeConfig.light(
-          height: screenHeight,
-          disableInteraction: true,
-        );
-        break;
-      case 1:
-        // Step 2: Awa Soul particle field
-        config = GlobeConfig.awaSoul(
-          height: screenHeight,
-          disableInteraction: true,
-        );
-        break;
-      case 2:
-        // Step 3: Globe reveal, interaction still locked
-        config = GlobeConfig.globe(
-          height: screenHeight,
-          disableInteraction: true,
-        );
-        break;
-      case 3:
-        // Step 4: Invitation, keep globe centered but still non-interactive
-        config = GlobeConfig.globe(
-          height: screenHeight,
-          disableInteraction: true,
-        );
-        break;
-      default:
-        // Step 5: Data handshake, disable interaction while form is active
-        config = GlobeConfig.globe(
-          height: screenHeight,
-          disableInteraction: true,
-        );
-        break;
+    if (_currentStep == 2) {
+      config = GlobeConfig.awaSoulToGlobe(
+        height: screenHeight,
+        disableInteraction: true,
+        transitionDuration: const Duration(milliseconds: 6000),
+      );
+    } else {
+      config = GlobeConfig.globe(
+        height: screenHeight,
+        disableInteraction: true,
+      );
     }
 
     print(
       'WelcomeScreen: Building config for step $_currentStep - state: ${config.state.name}, interactionDisabled: ${config.disableInteraction}',
     );
     return config;
+  }
+
+  Widget _buildBackgroundScene() {
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    late SoulConfig soulConfig;
+    final layers = <Widget>[];
+
+    if (_currentStep >= 2) {
+      layers.add(Positioned.fill(
+        key: const ValueKey('globe-layer'),
+        child: GlobeWidget(config: _buildGlobeConfig(screenHeight)),
+      ));
+      soulConfig = SoulConfig.globe(
+        height: screenHeight,
+        disableInteraction: true,
+        backgroundColor: Colors.transparent,
+      );
+      print(
+        'WelcomeScreen: Overlaying SoulWidget (globe state) with GlobeWidget for step $_currentStep',
+      );
+    } else {
+      soulConfig = (_currentStep == 0)
+          ? SoulConfig.human(
+              height: screenHeight,
+              disableInteraction: true,
+            )
+          : SoulConfig.mask(
+              height: screenHeight,
+              disableInteraction: true,
+            );
+      print(
+        'WelcomeScreen: Using SoulWidget for step $_currentStep - state: ${soulConfig.state.name}',
+      );
+    }
+
+    layers.add(
+      Positioned.fill(
+        key: const ValueKey('soul-layer'),
+        child: IgnorePointer(
+          child: SoulWidget(config: soulConfig),
+        ),
+      ),
+    );
+
+    return Stack(children: layers);
   }
 
   @override
@@ -322,7 +342,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         children: [
           // Globe Background (web: Globe.gl | other: empty)
           if (_showGlobe)
-            Positioned.fill(child: GlobeWidget(config: _buildGlobeConfig())),
+            Positioned.fill(child: _buildBackgroundScene()),
 
           // Onboarding message and controls
           if (_showText)

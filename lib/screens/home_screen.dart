@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../globe/globe_widget.dart';
 import '../globe/globe_states.dart';
+import '../soul/soul_states.dart';
+import '../soul/soul_widget.dart';
 import '../services/practice_service.dart';
 import '../services/language_service.dart';
 import '../models/meditation_models.dart';
@@ -159,13 +161,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   GlobeConfig _buildGlobeConfig() {
     final screenHeight = MediaQuery.of(context).size.height;
-    if (_practiceState != PracticeFlowState.home) {
-      return GlobeConfig.awaSoul(
-        height: screenHeight,
-        disableInteraction: _showUserProfile,
-      );
-    }
-
     return GlobeConfig.globe(
       height: screenHeight,
       showUserLight: _hasPracticedToday,
@@ -184,11 +179,21 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isPracticeFlow = _practiceState != PracticeFlowState.home;
+
     return IgnorePointer(
       ignoring: _showUserProfile,
-      child: GlobeWidget(
-        config: _buildGlobeConfig(),
-      ),
+      child: isPracticeFlow
+          ? SoulWidget(
+              config: SoulConfig.human(
+                height: screenHeight,
+                disableInteraction: _showUserProfile,
+              ),
+            )
+          : GlobeWidget(
+              config: _buildGlobeConfig(),
+            ),
     );
   }
 
