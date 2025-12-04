@@ -20,49 +20,62 @@ class AwaSoulTextStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     print('AwaSoulTextStep: Building step - $title');
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top spacing - pushes content to bottom half
-            const Spacer(flex: 5),
-            
-            // Title
-            Text(
-              title,
-              style: GoogleFonts.playfairDisplay(
-                fontSize: 36,
-                fontWeight: FontWeight.w400,
-                color: Colors.black87,
-                height: 1.1,
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
               ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title
+                Text(
+                  title,
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.black87,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Description
+                Text(
+                  description,
+                  style: GoogleFonts.urbanist(
+                    fontSize: 15,
+                    color: Colors.black54,
+                    height: 1.6,
+                  ),
+                ),
+                
+                const SizedBox(height: 32),
+                
+                // Button
+                SizedBox(
+                  width: double.infinity,
+                  child: isStartJourney 
+                    ? _buildStartJourneyButton()
+                    : _buildContinueButton(),
+                ),
+              ],
             ),
-            const SizedBox(height: 24),
-            
-            // Description
-            Text(
-              description,
-              style: GoogleFonts.urbanist(
-                fontSize: 16,
-                color: Colors.black54,
-                height: 1.6,
-              ),
-            ),
-            
-            const SizedBox(height: 60),
-            
-            // Button
-            SizedBox(
-              width: double.infinity,
-              child: isStartJourney 
-                ? _buildStartJourneyButton()
-                : _buildContinueButton(),
-            ),
-            
-            const SizedBox(height: 40),
-          ],
+          ),
         ),
       ),
     );

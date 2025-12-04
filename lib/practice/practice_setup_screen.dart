@@ -185,7 +185,7 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
               right: 0,
               child: AwaSphereHeader(
                 halfScreen: true,
-                interactive: false,
+                interactive: true,
               ),
             ),
 

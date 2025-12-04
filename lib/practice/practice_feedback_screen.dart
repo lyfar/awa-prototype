@@ -68,118 +68,138 @@ class _PracticeFeedbackScreenState extends State<PracticeFeedbackScreen> {
             right: 0,
             child: AwaSphereHeader(
               halfScreen: true,
-              interactive: false,
+              interactive: true,
             ),
           ),
 
-          // Content
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 60),
-
-                  // Completion badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+          // Content - aligned to bottom
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SafeArea(
+              top: false,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 20,
+                      offset: const Offset(0, -5),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.check_circle,
-                          size: 18,
-                          color: Color(0xFF4CAF50),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '$practiceName complete',
-                          style: GoogleFonts.urbanist(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF4CAF50),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Title
-                  Text(
-                    'How are you\nfeeling now?',
-                    style: GoogleFonts.playfairDisplay(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.black87,
-                      height: 1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Share a pulse so AwaSoul can tune your next journey.',
-                    style: GoogleFonts.urbanist(
-                      fontSize: 16,
-                      color: Colors.black45,
-                      height: 1.4,
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Reaction grid
-                  Expanded(
-                    child: _buildReactionGrid(),
-                  ),
-
-                  // Buttons
-                  if (_selectedReactionKey != null) ...[
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _submitFeedback,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2B2B3C),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                        ),
-                        child: Text(
-                          'Save & Continue',
-                          style: GoogleFonts.urbanist(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
                   ],
-
-                  // Skip option
-                  Center(
-                    child: TextButton(
-                      onPressed: _skipFeedback,
-                      child: Text(
-                        'Skip for now',
-                        style: GoogleFonts.urbanist(
-                          fontSize: 14,
-                          color: Colors.black38,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Completion badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4CAF50).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.check_circle,
+                              size: 18,
+                              color: Color(0xFF4CAF50),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '$practiceName complete',
+                              style: GoogleFonts.urbanist(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF4CAF50),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
+
+                      const SizedBox(height: 20),
+
+                      // Title
+                      Text(
+                        'How are you\nfeeling now?',
+                        style: GoogleFonts.playfairDisplay(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.black87,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Share a pulse so AwaSoul can tune your next journey.',
+                        style: GoogleFonts.urbanist(
+                          fontSize: 15,
+                          color: Colors.black45,
+                          height: 1.4,
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Reaction grid - fixed height
+                      SizedBox(
+                        height: 240,
+                        child: _buildReactionGrid(),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Buttons
+                      if (_selectedReactionKey != null) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _submitFeedback,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2B2B3C),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                            ),
+                            child: Text(
+                              'Save & Continue',
+                              style: GoogleFonts.urbanist(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+
+                      // Skip option
+                      Center(
+                        child: TextButton(
+                          onPressed: _skipFeedback,
+                          child: Text(
+                            'Skip for now',
+                            style: GoogleFonts.urbanist(
+                              fontSize: 14,
+                              color: Colors.black38,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 24),
-                ],
+                ),
               ),
             ),
           ),

@@ -162,8 +162,9 @@ class _PracticeSelectorScreenState extends State<PracticeSelectorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Use lobby sphere height (1/3 screen) for the selector
-    const sphereHeight = AwaSphereConfig.lobbyHeight;
+    // Use larger sphere height for the lobby
+    final screenHeight = MediaQuery.of(context).size.height;
+    final sphereHeight = screenHeight * 0.42; // ~42% of screen
 
     return Scaffold(
       backgroundColor: Colors.white,

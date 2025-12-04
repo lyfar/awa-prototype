@@ -27,133 +27,154 @@ class ModalityStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        children: [
-          const SizedBox(height: 60),
-          
-          // Title
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Text(
-              'What type of\npractice today?',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.playfairDisplay(
-                fontSize: 32,
-                fontWeight: FontWeight.w400,
-                color: Colors.black87,
-                height: 1.2,
-              ),
-            ),
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.55,
           ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Text(
-              'Your practice can take any form',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.urbanist(
-                fontSize: 16,
-                color: Colors.black45,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
               ),
-            ),
+            ],
           ),
-          
-          const SizedBox(height: 24),
-          
-          // Modality grid
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 2.8,
-              ),
-              itemCount: MyPracticeModality.all.length,
-              itemBuilder: (context, index) {
-                final modality = MyPracticeModality.all[index];
-                final isSelected = selectedModality?.id == modality.id;
-                
-                return GestureDetector(
-                  onTap: () => onSelect(modality),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isSelected 
-                          ? const Color(0xFF2B2B3C) 
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: isSelected 
-                            ? const Color(0xFF2B2B3C) 
-                            : Colors.black.withValues(alpha: 0.08),
-                      ),
-                      boxShadow: isSelected ? [
-                        BoxShadow(
-                          color: const Color(0xFF2B2B3C).withValues(alpha: 0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ] : null,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          modality.icon,
-                          size: 20,
-                          color: isSelected ? Colors.white : Colors.black54,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            modality.name,
-                            style: GoogleFonts.urbanist(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: isSelected ? Colors.white : Colors.black87,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          
-          // Continue button
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: selectedModality != null ? onContinue : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2B2B3C),
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.grey.shade300,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 28),
+              
+              // Title
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Text(
-                  'Continue',
-                  style: GoogleFonts.urbanist(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                  'What type of\npractice today?',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.black87,
+                    height: 1.2,
                   ),
                 ),
               ),
-            ),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  'Your practice can take any form',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.urbanist(
+                    fontSize: 15,
+                    color: Colors.black45,
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 20),
+              
+              // Modality grid
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 2.8,
+                  ),
+                  itemCount: MyPracticeModality.all.length,
+                  itemBuilder: (context, index) {
+                    final modality = MyPracticeModality.all[index];
+                    final isSelected = selectedModality?.id == modality.id;
+                    
+                    return GestureDetector(
+                      onTap: () => onSelect(modality),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isSelected 
+                              ? const Color(0xFF2B2B3C) 
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: isSelected 
+                                ? const Color(0xFF2B2B3C) 
+                                : Colors.black.withOpacity(0.08),
+                          ),
+                          boxShadow: isSelected ? [
+                            BoxShadow(
+                              color: const Color(0xFF2B2B3C).withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ] : null,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              modality.icon,
+                              size: 18,
+                              color: isSelected ? Colors.white : Colors.black54,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                modality.name,
+                                style: GoogleFonts.urbanist(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: isSelected ? Colors.white : Colors.black87,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              
+              // Continue button
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: selectedModality != null ? onContinue : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2B2B3C),
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.grey.shade300,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: Text(
+                      'Continue',
+                      style: GoogleFonts.urbanist(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -200,8 +221,10 @@ class _MyPracticeDurationStepState extends State<MyPracticeDurationStep> {
 
   @override
   Widget build(BuildContext context) {
+    // Dark mode step - special layout
     return SafeArea(
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
           const Spacer(flex: 2),
           
@@ -365,72 +388,86 @@ class VariantStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Spacer(flex: 4),
-            
-            Text(
-              'Which version\nwould you like?',
-              style: GoogleFonts.playfairDisplay(
-                fontSize: 32,
-                fontWeight: FontWeight.w400,
-                color: Colors.black87,
-                height: 1.2,
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'New practices rotate daily',
-              style: GoogleFonts.urbanist(
-                fontSize: 16,
-                color: Colors.black45,
-              ),
-            ),
-            
-            const SizedBox(height: 32),
-            
-            // Variant options
-            ...group.variants.map((variant) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: VariantOption(
-                variant: variant,
-                isSelected: variant.id == selectedPractice.id,
-                onTap: () => onSelect(variant),
-              ),
-            )),
-            
-            const Spacer(flex: 2),
-            
-            // Continue button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: onContinue,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2B2B3C),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Which version\nwould you like?',
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.black87,
+                    height: 1.2,
                   ),
                 ),
-                child: Text(
-                  'Continue',
+                const SizedBox(height: 6),
+                Text(
+                  'New practices rotate daily',
                   style: GoogleFonts.urbanist(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: Colors.black45,
                   ),
                 ),
-              ),
+                
+                const SizedBox(height: 24),
+                
+                // Variant options
+                ...group.variants.map((variant) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: VariantOption(
+                    variant: variant,
+                    isSelected: variant.id == selectedPractice.id,
+                    onTap: () => onSelect(variant),
+                  ),
+                )),
+                
+                const SizedBox(height: 8),
+                
+                // Continue button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: onContinue,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2B2B3C),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: Text(
+                      'Continue',
+                      style: GoogleFonts.urbanist(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            
-            const SizedBox(height: 40),
-          ],
+          ),
         ),
       ),
     );
@@ -489,17 +526,17 @@ class VariantOption extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFFDF7F3) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isSelected ? const Color(0xFFFCB29C) : Colors.black.withValues(alpha: 0.08),
+            color: isSelected ? const Color(0xFFFCB29C) : Colors.black.withOpacity(0.08),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected ? [
             BoxShadow(
-              color: const Color(0xFFFCB29C).withValues(alpha: 0.15),
+              color: const Color(0xFFFCB29C).withOpacity(0.15),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -508,21 +545,21 @@ class VariantOption extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: _badgeColor,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 _badgeText,
                 style: GoogleFonts.urbanist(
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             
             Expanded(
               child: Column(
@@ -531,7 +568,7 @@ class VariantOption extends StatelessWidget {
                   Text(
                     variant.availabilityLabel,
                     style: GoogleFonts.urbanist(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
@@ -540,7 +577,7 @@ class VariantOption extends StatelessWidget {
                     Text(
                       _subtitleText,
                       style: GoogleFonts.urbanist(
-                        fontSize: 13,
+                        fontSize: 12,
                         color: Colors.black45,
                       ),
                     ),
@@ -550,18 +587,18 @@ class VariantOption extends StatelessWidget {
             
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              width: 28,
-              height: 28,
+              width: 26,
+              height: 26,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isSelected ? const Color(0xFFFCB29C) : Colors.transparent,
                 border: Border.all(
-                  color: isSelected ? const Color(0xFFFCB29C) : Colors.black.withValues(alpha: 0.15),
+                  color: isSelected ? const Color(0xFFFCB29C) : Colors.black.withOpacity(0.15),
                   width: 2,
                 ),
               ),
               child: isSelected
-                  ? const Icon(Icons.check, size: 16, color: Colors.white)
+                  ? const Icon(Icons.check, size: 14, color: Colors.white)
                   : null,
             ),
           ],
@@ -608,101 +645,115 @@ class DurationStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final presets = _presetDurations;
     
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Spacer(flex: 4),
-            
-            Text(
-              'How long would\nyou like to practice?',
-              style: GoogleFonts.playfairDisplay(
-                fontSize: 32,
-                fontWeight: FontWeight.w400,
-                color: Colors.black87,
-                height: 1.2,
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Choose your duration',
-              style: GoogleFonts.urbanist(
-                fontSize: 16,
-                color: Colors.black45,
-              ),
-            ),
-            
-            const SizedBox(height: 32),
-            
-            // Duration preset buttons
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: presets.map((duration) {
-                final isSelected = duration == selectedDuration;
-                return GestureDetector(
-                  onTap: () => onSelect(duration),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF2B2B3C) : Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isSelected 
-                            ? const Color(0xFF2B2B3C) 
-                            : Colors.black.withValues(alpha: 0.1),
-                      ),
-                      boxShadow: isSelected ? [
-                        BoxShadow(
-                          color: const Color(0xFF2B2B3C).withValues(alpha: 0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'How long would\nyou like to practice?',
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.black87,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Choose your duration',
+                  style: GoogleFonts.urbanist(
+                    fontSize: 15,
+                    color: Colors.black45,
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Duration preset buttons
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: presets.map((duration) {
+                    final isSelected = duration == selectedDuration;
+                    return GestureDetector(
+                      onTap: () => onSelect(duration),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFF2B2B3C) : Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: isSelected 
+                                ? const Color(0xFF2B2B3C) 
+                                : Colors.black.withOpacity(0.1),
+                          ),
+                          boxShadow: isSelected ? [
+                            BoxShadow(
+                              color: const Color(0xFF2B2B3C).withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ] : null,
                         ),
-                      ] : null,
+                        child: Text(
+                          '${duration.inMinutes} min',
+                          style: GoogleFonts.urbanist(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                
+                const SizedBox(height: 28),
+                
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: onContinue,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2B2B3C),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
                     ),
                     child: Text(
-                      '${duration.inMinutes} min',
+                      'Continue',
                       style: GoogleFonts.urbanist(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: isSelected ? Colors.white : Colors.black87,
                       ),
                     ),
                   ),
-                );
-              }).toList(),
-            ),
-            
-            const Spacer(flex: 2),
-            
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: onContinue,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2B2B3C),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
                 ),
-                child: Text(
-                  'Continue',
-                  style: GoogleFonts.urbanist(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
+              ],
             ),
-            
-            const SizedBox(height: 40),
-          ],
+          ),
         ),
       ),
     );
@@ -741,124 +792,137 @@ class ReadyStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Spacer(flex: 4),
-            
-            Text(
-              'Ready when\nyou are',
-              style: GoogleFonts.playfairDisplay(
-                fontSize: 36,
-                fontWeight: FontWeight.w400,
-                color: Colors.black87,
-                height: 1.1,
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
               ),
-            ),
-            const SizedBox(height: 12),
-            
-            Text(
-              'Find a quiet space.\nSettle in. Let the practice guide you.',
-              style: GoogleFonts.urbanist(
-                fontSize: 16,
-                color: Colors.black45,
-                height: 1.5,
-              ),
-            ),
-            
-            const SizedBox(height: 40),
-            
-            // Summary card
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFAFAFA),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFCB29C).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      _getPracticeIcon(practice.type),
-                      size: 26,
-                      color: const Color(0xFFE88A6E),
-                    ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Ready when\nyou are',
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.black87,
+                    height: 1.1,
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          modalityName ?? practice.getName(),
-                          style: GoogleFonts.urbanist(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF2B2B3C),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${duration.inMinutes} minutes',
-                          style: GoogleFonts.urbanist(
-                            fontSize: 14,
-                            color: Colors.black45,
-                          ),
-                        ),
-                      ],
-                    ),
+                ),
+                const SizedBox(height: 10),
+                
+                Text(
+                  'Find a quiet space.\nSettle in. Let the practice guide you.',
+                  style: GoogleFonts.urbanist(
+                    fontSize: 15,
+                    color: Colors.black45,
+                    height: 1.5,
                   ),
-                ],
-              ),
-            ),
-            
-            const Spacer(flex: 2),
-            
-            // Start button (gradient)
-            GestureDetector(
-              onTap: onStart,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFFE8D5D0),
-                      Color(0xFFD4A5B0),
+                ),
+                
+                const SizedBox(height: 28),
+                
+                // Summary card
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAFAFA),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.black.withOpacity(0.06)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFCB29C).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          _getPracticeIcon(practice.type),
+                          size: 24,
+                          color: const Color(0xFFE88A6E),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              modalityName ?? practice.getName(),
+                              style: GoogleFonts.urbanist(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF2B2B3C),
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              '${duration.inMinutes} minutes',
+                              style: GoogleFonts.urbanist(
+                                fontSize: 13,
+                                color: Colors.black45,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
                   ),
                 ),
-                child: Center(
-                  child: Text(
-                    'Start Practice',
-                    style: GoogleFonts.urbanist(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                
+                const SizedBox(height: 28),
+                
+                // Start button (gradient)
+                GestureDetector(
+                  onTap: onStart,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFFE8D5D0),
+                          Color(0xFFD4A5B0),
+                        ],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Start Practice',
+                        style: GoogleFonts.urbanist(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-            
-            const SizedBox(height: 40),
-          ],
+          ),
         ),
       ),
     );
   }
 }
-

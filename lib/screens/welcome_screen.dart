@@ -138,7 +138,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               right: 0,
               child: AwaSphereHeader(
                 halfScreen: true,
-                interactive: false,
+                interactive: true,
               ),
             ),
 
