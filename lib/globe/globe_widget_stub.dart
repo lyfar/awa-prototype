@@ -82,8 +82,13 @@ const Map<String, List<List<double>>> _continentLatLngs = {
 /// Stub implementation for non-web platforms
 class GlobeRenderer extends StatelessWidget {
   final GlobeConfig config;
+  final Color backgroundColor;
 
-  const GlobeRenderer({super.key, required this.config});
+  const GlobeRenderer({
+    super.key,
+    required this.config,
+    this.backgroundColor = Colors.black,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -133,76 +138,103 @@ class GlobeRenderer extends StatelessWidget {
     }
 
     final palette = _holographicPalette;
-    final effectiveHeight = config.height.isFinite ? config.height : 280.0;
-    final globeDiameter = math.min(effectiveHeight, 280.0);
     final backgroundGradient = const LinearGradient(
       colors: [Color(0xFF05010D), Color(0xFF0D1630)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     );
 
+    final decoration =
+        backgroundColor == Colors.black
+            ? BoxDecoration(gradient: backgroundGradient)
+            : BoxDecoration(color: backgroundColor);
+
     return Container(
-      decoration: BoxDecoration(gradient: backgroundGradient),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: globeDiameter,
-              height: globeDiameter,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: palette.first.withValues(alpha: 0.35),
-                    blurRadius: 45,
-                    spreadRadius: 6,
+      decoration: decoration,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final double availableHeight =
+              constraints.maxHeight.isFinite
+                  ? constraints.maxHeight
+                  : (config.height.isFinite ? config.height : 320.0);
+          final double globeDiameter = math.min(availableHeight, 280.0);
+
+          final column = Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: globeDiameter,
+                height: globeDiameter,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: palette.first.withValues(alpha: 0.35),
+                      blurRadius: 45,
+                      spreadRadius: 6,
+                    ),
+                    BoxShadow(
+                      color: palette[2].withValues(alpha: 0.18),
+                      blurRadius: 90,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: CustomPaint(
+                    painter: _HolographicGlobePainter(palette),
                   ),
-                  BoxShadow(
-                    color: palette[2].withValues(alpha: 0.18),
-                    blurRadius: 90,
-                    spreadRadius: 2,
-                  ),
-                ],
+                ),
               ),
-              child: ClipOval(
-                child: CustomPaint(painter: _HolographicGlobePainter(palette)),
-              ),
-            ),
-            const SizedBox(height: 28),
-            Text(
-              stateTitle,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.3,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              stateSubtitle,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.8),
-                fontSize: 14,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            if (config.showUserLight) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 28),
               Text(
-                'Your light is shimmering across the globe ✨',
-                style: TextStyle(
-                  color: palette[0].withValues(alpha: 0.85),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+                stateTitle,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
                 ),
                 textAlign: TextAlign.center,
               ),
+              const SizedBox(height: 8),
+              Text(
+                stateSubtitle,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              if (config.showUserLight) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'Your light is shimmering across the globe ✨',
+                  style: TextStyle(
+                    color: palette[0].withValues(alpha: 0.85),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ],
-          ],
-        ),
+          );
+
+          if (constraints.maxHeight.isFinite &&
+              constraints.maxHeight < globeDiameter + 140) {
+            return Align(
+              alignment: Alignment.topCenter,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Center(child: column),
+              ),
+            );
+          }
+
+          return Center(child: column);
+        },
       ),
     );
   }

@@ -3,6 +3,9 @@ import 'package:geolocator/geolocator.dart';
 import '../../../services/practice_service.dart';
 import '../../../models/meditation_models.dart';
 
+const Color _ink = Colors.white;
+const Color _muted = Color(0xFFC3BCD8);
+
 /// User info section component for profile panel
 class UserInfoSection extends StatefulWidget {
   final bool hasPracticedToday;
@@ -28,10 +31,10 @@ class _UserInfoSectionState extends State<UserInfoSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'User Information',
           style: TextStyle(
-            color: Colors.white.withOpacity(0.9),
+            color: _ink,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -61,8 +64,8 @@ class _UserInfoSectionState extends State<UserInfoSection> {
       width: double.infinity,
       margin: const EdgeInsets.only(top: 8),
       child: Material(
-        color: Colors.blue.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: () async {
             print('ProfilePanel: Requesting location permission');
@@ -84,7 +87,7 @@ class _UserInfoSectionState extends State<UserInfoSection> {
                         'Location permission granted! You are now connected to the global community.',
                         style: TextStyle(color: Colors.white),
                       ),
-                      backgroundColor: Colors.green.withOpacity(0.8),
+                      backgroundColor: Colors.green.withValues(alpha: 0.8),
                       duration: const Duration(seconds: 3),
                     ),
                   );
@@ -99,7 +102,7 @@ class _UserInfoSectionState extends State<UserInfoSection> {
                         'Location permission is needed to connect with nearby practitioners.',
                         style: TextStyle(color: Colors.white),
                       ),
-                      backgroundColor: Colors.orange.withOpacity(0.8),
+                      backgroundColor: Colors.orange.withValues(alpha: 0.8),
                       duration: const Duration(seconds: 3),
                     ),
                   );
@@ -114,7 +117,7 @@ class _UserInfoSectionState extends State<UserInfoSection> {
                       'Failed to request location permission. Please try again.',
                       style: TextStyle(color: Colors.white),
                     ),
-                    backgroundColor: Colors.red.withOpacity(0.8),
+                    backgroundColor: Colors.red.withValues(alpha: 0.8),
                     duration: const Duration(seconds: 3),
                   ),
                 );
@@ -125,22 +128,22 @@ class _UserInfoSectionState extends State<UserInfoSection> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue.withOpacity(0.5), width: 1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.18), width: 1),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                   Icons.location_on,
-                  color: Colors.white.withOpacity(0.8),
+                  color: _muted,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
-                Text(
+                const Text(
                   'Enable Location',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: _ink,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -165,7 +168,7 @@ class _UserInfoSectionState extends State<UserInfoSection> {
             child: Text(
               '$label:',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.6),
+                color: _muted.withValues(alpha: 0.8),
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -174,10 +177,10 @@ class _UserInfoSectionState extends State<UserInfoSection> {
           Expanded(
             child: Text(
               value,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
+              style: const TextStyle(
+                color: _ink,
                 fontSize: 14,
-                fontWeight: FontWeight.w400,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),

@@ -1,61 +1,39 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { SimplexNoise } from 'three/examples/jsm/math/SimplexNoise.js';
 
-const CANVAS = document.getElementById('awa-soul-canvas');
-const CONTAINER = document.getElementById('scene-container');
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+const POINT_COUNT = 2000;
+const AUTO_CYCLE_INTERVAL = 18;
 
-const renderer = new THREE.WebGLRenderer({ canvas: CANVAS, antialias: true, alpha: true });
+const container = document.getElementById('scene-container');
+const canvas = document.getElementById('awa-soul-canvas');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(CONTAINER.clientWidth, CONTAINER.clientHeight, false);
-renderer.setClearColor(0x000000, 0);
+renderer.setClearColor(0xffffff, 1);
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x030109, 0.25);
+scene.background = new THREE.Color('#ffffff');
 
-const camera = new THREE.PerspectiveCamera(55, CONTAINER.clientWidth / CONTAINER.clientHeight, 0.1, 100);
-camera.position.set(0, 0, 5.5);
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+camera.position.set(0, 0, 4);
 
 const clock = new THREE.Clock();
-const simplex = new SimplexNoise();
-const simplexAlt = new SimplexNoise();
+let elapsed = 0;
 
-const POINT_COUNT = 15000;
+const basePositions = new Float32Array(POINT_COUNT * 2);
 const positions = new Float32Array(POINT_COUNT * 3);
-const velocities = new Float32Array(POINT_COUNT * 3);
-const targetPositions = new Float32Array(POINT_COUNT * 3);
-const lightTargets = new Float32Array(POINT_COUNT * 3);
-
 const colors = new Float32Array(POINT_COUNT * 3);
-const colorA = new THREE.Color('#ff355a');
-const colorB = new THREE.Color('#ffa642');
+const mixes = new Float32Array(POINT_COUNT);
 
+const spread = 0.085;
 for (let i = 0; i < POINT_COUNT; i++) {
-  const idx = i * 3;
-  const mix = Math.pow(i / POINT_COUNT, 0.32);
-  const tint = colorA.clone().lerp(colorB, mix);
-  colors[idx] = tint.r;
-  colors[idx + 1] = tint.g;
-  colors[idx + 2] = tint.b;
-
-  const u = Math.random() * 2 - 1;
-  const theta = Math.random() * Math.PI * 2;
-  const r = 2.2 + Math.pow(Math.random(), 0.65) * 0.8;
-  const s = Math.sqrt(1 - u * u);
-
-  positions[idx] = r * s * Math.cos(theta);
-  positions[idx + 1] = r * u;
-  positions[idx + 2] = r * s * Math.sin(theta);
-
-  const lr = 0.25 + Math.random() * 0.7;
-  lightTargets[idx] = lr * s * Math.cos(theta);
-  lightTargets[idx + 1] = lr * u;
-  lightTargets[idx + 2] = lr * s * Math.sin(theta);
+  const radius = Math.sqrt(i + 0.5) * spread;
+  const angle = i * GOLDEN_ANGLE;
+  const idx2 = i * 2;
+  basePositions[idx2] = Math.cos(angle) * radius;
+  basePositions[idx2 + 1] = Math.sin(angle) * radius;
+  mixes[i] = i / POINT_COUNT;
 }
-
-velocities.fill(0);
-
-targetPositions.set(lightTargets);
 
 const geometry = new THREE.BufferGeometry();
 geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -68,311 +46,165 @@ const spriteTexture = (() => {
   canvas.height = size;
   const ctx = canvas.getContext('2d');
   const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  gradient.addColorStop(0.0, 'rgba(255,255,255,0.95)');
-  gradient.addColorStop(0.2, 'rgba(255,200,180,0.85)');
-  gradient.addColorStop(1.0, 'rgba(0,0,0,0)');
+  gradient.addColorStop(0, 'rgba(255,255,255,1)');
+  gradient.addColorStop(0.4, 'rgba(255,255,255,0.8)');
+  gradient.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, size, size);
   return new THREE.CanvasTexture(canvas);
 })();
 
 const material = new THREE.PointsMaterial({
-  size: 0.065,
-  map: spriteTexture,
+  size: 3.4,
+  sizeAttenuation: false,
   transparent: true,
+  opacity: 1,
   depthWrite: false,
-  blending: THREE.AdditiveBlending,
   vertexColors: true,
-  opacity: 0.92,
+  map: spriteTexture,
+  alphaTest: 0.02,
 });
 
-const particles = new THREE.Points(geometry, material);
-particles.frustumCulled = false;
-scene.add(particles);
+const points = new THREE.Points(geometry, material);
+points.frustumCulled = false;
+scene.add(points);
 
-function hash(index, offset = 0.0) {
-  const seed = Math.sin((index + offset) * 12.9898) * 43758.5453123;
-  return seed - Math.floor(seed);
-}
-
-const tmpFlow = { x: 0, y: 0, z: 0 };
-const tmpWiggle = { x: 0, y: 0, z: 0 };
-const tmpRot = { x: 0, y: 0, z: 0 };
-
-function rotateY(out, x, y, z, angle) {
-  const c = Math.cos(angle);
-  const s = Math.sin(angle);
-  out.x = x * c - z * s;
-  out.y = y;
-  out.z = x * s + z * c;
-  return out;
-}
-
-function curlNoise(out, x, y, z, w) {
-  const eps = 0.0015;
-  const n1 = simplex.noise3d(y + eps, z, w);
-  const n2 = simplex.noise3d(y - eps, z, w);
-  const a = (n1 - n2) / (2 * eps);
-
-  const n3 = simplex.noise3d(z + eps, w, x);
-  const n4 = simplex.noise3d(z - eps, w, x);
-  const b = (n3 - n4) / (2 * eps);
-
-  const n5 = simplexAlt.noise3d(w + eps, x, y);
-  const n6 = simplexAlt.noise3d(w - eps, x, y);
-  const c = (n5 - n6) / (2 * eps);
-
-  let len = Math.sqrt(a * a + b * b + c * c);
-  if (len < 1e-6) len = 1e-6;
-  out.x = a / len;
-  out.y = b / len;
-  out.z = c / len;
-  return out;
-}
-
-function clamp01(value) {
-  return Math.min(1, Math.max(0, value));
-}
-
-function createGlobeTarget() {
-  const out = new Float32Array(POINT_COUNT * 3);
-  const offset = 2 / POINT_COUNT;
-  const increment = Math.PI * (3 - Math.sqrt(5));
-  const radius = 2.24;
-
-  for (let i = 0; i < POINT_COUNT; i++) {
-    const y = (i * offset) - 1 + offset / 2;
-    const r = Math.sqrt(Math.max(0, 1 - y * y));
-    const phi = i * increment;
-
-    const x = Math.cos(phi) * r;
-    const z = Math.sin(phi) * r;
-
-    const idx = i * 3;
-    out[idx] = x * radius;
-    out[idx + 1] = y * radius;
-    out[idx + 2] = z * radius;
-  }
-
-  return out;
-}
-
-const stateSettings = {
+const THEMES = {
   light: {
-    settleDuration: 4.0,
-    wiggleSpeed: 0.85,
-    wigglePowerStart: 0.52,
-    wigglePowerEnd: 0.18,
-    particleSizeStart: 0.072,
-    particleSizeEnd: 0.06,
-    scaleStart: 0.82,
-    scaleEnd: 0.72,
+    radius: 0.82,
+    jitter: 0.03,
+    size: 3.1,
+    spin: 0.22,
+    colorA: '#FDF1DF',
+    colorB: '#FF9EB1',
   },
   human: {
-    settleDuration: 5.0,
-    wiggleSpeed: 1.88,
-    wigglePowerStart: 0.66,
-    wigglePowerEnd: 0.24,
-    particleSizeStart: 0.07,
-    particleSizeEnd: 0.065,
-    scaleStart: 1.16,
-    scaleEnd: 1.06,
+    radius: 1.04,
+    jitter: 0.05,
+    size: 3.4,
+    spin: 0.34,
+    colorA: '#FFD3BA',
+    colorB: '#FF6F91',
   },
   mask: {
-    settleDuration: 5.4,
-    wiggleSpeed: 1.95,
-    wigglePowerStart: 0.7,
-    wigglePowerEnd: 0.28,
-    particleSizeStart: 0.071,
-    particleSizeEnd: 0.067,
-    scaleStart: 1.18,
-    scaleEnd: 1.08,
+    radius: 1.18,
+    jitter: 0.065,
+    size: 3.6,
+    spin: 0.46,
+    colorA: '#B5CFFF',
+    colorB: '#FE7FBF',
   },
   globe: {
-    settleDuration: 6.2,
-    wiggleSpeed: 1.4,
-    wigglePowerStart: 0.45,
-    wigglePowerEnd: 0.2,
-    particleSizeStart: 0.068,
-    particleSizeEnd: 0.062,
-    scaleStart: 0.88,
-    scaleEnd: 0.84,
+    radius: 1.02,
+    jitter: 0.04,
+    size: 3.2,
+    spin: 0.3,
+    colorA: '#9EDBFF',
+    colorB: '#FFC3A0',
   },
 };
 
-const pointer = new THREE.Vector2(0, 0);
-const pointerTarget = new THREE.Vector2(0, 0);
-let pointerActive = false;
+const themeState = {
+  radius: THEMES.human.radius,
+  jitter: THEMES.human.jitter,
+  spin: THEMES.human.spin,
+};
+const themeTarget = {
+  radius: THEMES.human.radius,
+  jitter: THEMES.human.jitter,
+  spin: THEMES.human.spin,
+  size: THEMES.human.size,
+};
 
-CANVAS.addEventListener('pointermove', (event) => {
-  const rect = CANVAS.getBoundingClientRect();
-  pointerTarget.x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
-  pointerTarget.y = ((event.clientY - rect.top) / rect.height - 0.5) * -2;
-  pointerActive = true;
-  document.body.classList.add('hide-hint');
-});
+const colorA = new THREE.Color(THEMES.human.colorA);
+const colorB = new THREE.Color(THEMES.human.colorB);
+const colorTargetA = new THREE.Color(THEMES.human.colorA);
+const colorTargetB = new THREE.Color(THEMES.human.colorB);
 
-CANVAS.addEventListener('pointerleave', () => {
-  pointerActive = false;
-});
-
-window.addEventListener('resize', () => {
-  const { clientWidth, clientHeight } = CONTAINER;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(clientWidth, clientHeight, false);
-  camera.aspect = clientWidth / clientHeight;
-  camera.updateProjectionMatrix();
-});
-
-const loader = new GLTFLoader();
-const targets = new Map([
-  ['light', lightTargets],
-]);
-
+let currentState = 'human';
 let ready = false;
 let pendingRequest = null;
-let currentState = 'light';
-let elapsedTime = 0;
-let stateChangedAt = 0;
 let autoCycleEnabled = false;
 let autoCycleTimer = 0;
-const AUTO_CYCLE_INTERVAL = 10.5;
 
-async function loadTargets() {
-  const gltfs = await Promise.all([
-    loader.loadAsync('gltf/face2.glb'),
-    loader.loadAsync('gltf/suzanne.glb'),
-  ]);
+const pointer = { x: 0, y: 0, targetX: 0, targetY: 0, active: false };
 
-  const getMesh = (scene, index) => {
-    if (index === 0) {
-      return scene.children[1].children[0].children[0].children[0];
-    }
-    return scene.children[0];
-  };
-
-  gltfs.forEach((gltf, index) => {
-    const mesh = getMesh(gltf.scene, index);
-    mesh.geometry.toNonIndexed();
-    mesh.geometry.center();
-
-    if (index === 0) {
-      mesh.geometry.rotateX(-Math.PI / 2);
-      mesh.geometry.scale(0.13, 0.13, 0.13);
-    } else {
-      mesh.geometry.scale(1.7, 1.7, 1.7);
-    }
-
-    const original = mesh.geometry.attributes.position.array;
-    const count = mesh.geometry.attributes.position.count;
-    const out = new Float32Array(POINT_COUNT * 3);
-
-    for (let i = 0; i < POINT_COUNT; i++) {
-      const sourceIndex = i < count ? i : Math.floor(hash(i, index * 911) * count);
-      const src = sourceIndex * 3;
-      const dst = i * 3;
-      out[dst] = original[src];
-      out[dst + 1] = original[src + 1];
-      out[dst + 2] = original[src + 2];
-    }
-
-    const bounds = new THREE.Box3();
-    const temp = new THREE.Vector3();
-    for (let i = 0; i < out.length; i += 3) {
-      temp.set(out[i], out[i + 1], out[i + 2]);
-      bounds.expandByPoint(temp);
-    }
-    const size = new THREE.Vector3();
-    bounds.getSize(size);
-    const maxAxis = Math.max(size.x, size.y, size.z) || 1;
-    const normalize = 2.9 / maxAxis;
-    for (let i = 0; i < out.length; i += 3) {
-      out[i] *= normalize;
-      out[i + 1] *= normalize;
-      out[i + 2] *= normalize;
-    }
-
-    if (index === 0) {
-      targets.set('human', out);
-    } else {
-      targets.set('mask', out);
-    }
-  });
-
-  targets.set('globe', createGlobeTarget());
-
-  ready = true;
-  postToParent({ type: 'AWA_SOUL_READY' });
-
-  if (pendingRequest) {
-    const { state, options } = pendingRequest;
-    pendingRequest = null;
-    setSoulState(state, options);
-  }
+function handleResize() {
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+  renderer.setSize(width, height, false);
+  const aspect = width / Math.max(1, height);
+  const viewHeight = 3.2;
+  camera.left = -viewHeight * aspect;
+  camera.right = viewHeight * aspect;
+  camera.top = viewHeight;
+  camera.bottom = -viewHeight;
+  camera.updateProjectionMatrix();
 }
 
-loadTargets().catch((error) => {
-  console.error('[AWA_SOUL] failed to load targets', error);
-  postToParent({ type: 'AWA_SOUL_ERROR', message: String(error) });
+window.addEventListener('resize', handleResize);
+handleResize();
+
+function updatePointer(event) {
+  const rect = container.getBoundingClientRect();
+  pointer.targetX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.targetY = ((event.clientY - rect.top) / rect.height) * -2 + 1;
+  pointer.active = true;
+}
+
+container.addEventListener('pointermove', updatePointer);
+container.addEventListener('pointerdown', updatePointer);
+container.addEventListener('pointerleave', () => {
+  pointer.active = false;
+  pointer.targetX = 0;
+  pointer.targetY = 0;
 });
 
-function setSoulState(state, options = {}) {
-  if (!ready) {
-    pendingRequest = { state, options };
-    return;
+function updatePositions(time) {
+  const pulse = 1 + Math.sin(time * 0.8) * 0.04;
+  for (let i = 0; i < POINT_COUNT; i++) {
+    const idx2 = i * 2;
+    const idx3 = i * 3;
+    const baseX = basePositions[idx2];
+    const baseY = basePositions[idx2 + 1];
+    const ripple = Math.sin(time * 1.1 + i * 0.015) * themeState.jitter;
+    const scale = (themeState.radius + ripple) * pulse;
+    positions[idx3] = baseX * scale;
+    positions[idx3 + 1] = baseY * scale;
+    positions[idx3 + 2] = Math.sin(i * 0.02 + time * 0.6) * 0.05;
   }
-
-  const data = targets.get(state);
-  if (!data) {
-    console.warn('[AWA_SOUL] unknown state', state);
-    return;
-  }
-
-  currentState = state;
-  if (data.length === targetPositions.length) {
-    targetPositions.set(data);
-  } else {
-    for (let i = 0; i < targetPositions.length; i += 3) {
-      const sourceIndex = i % data.length;
-      targetPositions[i] = data[sourceIndex];
-      targetPositions[i + 1] = data[(sourceIndex + 1) % data.length];
-      targetPositions[i + 2] = data[(sourceIndex + 2) % data.length];
-    }
-  }
-  stateChangedAt = elapsedTime;
-  autoCycleTimer = 0;
-
-  if (options.immediate) {
-    if (data.length === positions.length) {
-      positions.set(data);
-    } else {
-      for (let i = 0; i < positions.length; i += 3) {
-        const sourceIndex = i % data.length;
-        positions[i] = data[sourceIndex];
-        positions[i + 1] = data[(sourceIndex + 1) % data.length];
-        positions[i + 2] = data[(sourceIndex + 2) % data.length];
-      }
-    }
-    velocities.fill(0);
-    geometry.attributes.position.needsUpdate = true;
-  }
-
-  if (state !== 'light') {
-    document.body.classList.add('hide-hint');
-  }
-
-  postToParent({ type: 'AWA_SOUL_STATE', state });
+  geometry.attributes.position.needsUpdate = true;
 }
 
-function cycleState() {
-  if (!ready) {
-    return;
+function updateColors() {
+  for (let i = 0; i < POINT_COUNT; i++) {
+    const mix = mixes[i];
+    const idx3 = i * 3;
+    colors[idx3] = colorA.r + (colorB.r - colorA.r) * mix;
+    colors[idx3 + 1] = colorA.g + (colorB.g - colorA.g) * mix;
+    colors[idx3 + 2] = colorA.b + (colorB.b - colorA.b) * mix;
   }
+  geometry.attributes.color.needsUpdate = true;
+}
 
-  if (currentState === 'human') {
-    setSoulState('mask');
-  } else {
-    setSoulState('human');
+function applyTheme(theme, immediate = false) {
+  themeTarget.radius = theme.radius;
+  themeTarget.jitter = theme.jitter;
+  themeTarget.spin = theme.spin;
+  themeTarget.size = theme.size;
+  colorTargetA.set(theme.colorA);
+  colorTargetB.set(theme.colorB);
+
+  if (immediate) {
+    themeState.radius = theme.radius;
+    themeState.jitter = theme.jitter;
+    themeState.spin = theme.spin;
+    material.size = theme.size;
+    material.needsUpdate = true;
+    colorA.copy(colorTargetA);
+    colorB.copy(colorTargetB);
+    updatePositions(elapsed);
+    updateColors();
   }
 }
 
@@ -384,113 +216,79 @@ function postToParent(message) {
   }
 }
 
-function update(delta) {
-  const settings = stateSettings[currentState] ?? stateSettings.human;
-  const morphAge = Math.max(0, elapsedTime - stateChangedAt);
-  const settleMix = clamp01(morphAge / settings.settleDuration);
+function setSoulState(state, options = {}) {
+  const theme = THEMES[state] ?? THEMES.human;
+  currentState = state;
+  applyTheme(theme, options.immediate === true);
+  autoCycleTimer = 0;
+  if (state === 'light') {
+    document.body.classList.remove('hide-hint');
+  } else {
+    document.body.classList.add('hide-hint');
+  }
+  postToParent({ type: 'AWA_SOUL_STATE', state });
+}
 
-  const wigglePower = THREE.MathUtils.lerp(settings.wigglePowerStart, settings.wigglePowerEnd, settleMix);
-  const wiggleSpeed = settings.wiggleSpeed;
-  const particleSize = THREE.MathUtils.lerp(settings.particleSizeStart, settings.particleSizeEnd, settleMix);
-  const scaleTarget = THREE.MathUtils.lerp(settings.scaleStart, settings.scaleEnd, settleMix);
+function requestState(state, options = {}) {
+  if (!ready) {
+    pendingRequest = { state, options };
+    return;
+  }
+  setSoulState(state, options);
+}
 
-  if (Math.abs(material.size - particleSize) > 0.0001) {
-    material.size = particleSize;
+function cycleState() {
+  if (currentState === 'human') {
+    requestState('mask');
+  } else {
+    requestState('human');
+  }
+}
+
+function setAutoCycle(enabled) {
+  autoCycleEnabled = enabled === true;
+  autoCycleTimer = 0;
+}
+
+function animateFrame(delta) {
+  const pointerMix = pointer.active ? 0.18 : 0.06;
+  pointer.x += (pointer.targetX - pointer.x) * pointerMix;
+  pointer.y += (pointer.targetY - pointer.y) * pointerMix;
+  const pointerStrength = Math.min(1, Math.hypot(pointer.x, pointer.y));
+
+  const easing = 1 - Math.pow(0.0007, delta * 60);
+  themeState.radius += (themeTarget.radius - themeState.radius) * easing;
+  themeState.jitter += (themeTarget.jitter - themeState.jitter) * easing;
+  themeState.spin += (themeTarget.spin - themeState.spin) * easing;
+
+  const nextSize = material.size + (themeTarget.size - material.size) * easing;
+  if (Math.abs(nextSize - material.size) > 0.0001) {
+    material.size = nextSize;
     material.needsUpdate = true;
   }
 
-  const step = delta * 60;
+  colorA.lerp(colorTargetA, easing);
+  colorB.lerp(colorTargetB, easing);
 
-  for (let i = 0; i < POINT_COUNT; i++) {
-    const idx = i * 3;
+  updatePositions(elapsed);
+  updateColors();
 
-    const px = positions[idx];
-    const py = positions[idx + 1];
-    const pz = positions[idx + 2];
+  points.rotation.z += delta * (themeState.spin + pointerStrength * 0.6);
+  points.rotation.x = THREE.MathUtils.lerp(points.rotation.x, pointer.y * 0.25, 0.08);
+  points.rotation.y = THREE.MathUtils.lerp(points.rotation.y, pointer.x * 0.25, 0.08);
 
-    const tx = targetPositions[idx];
-    const ty = targetPositions[idx + 1];
-    const tz = targetPositions[idx + 2];
+  const scaleTarget = 1 + pointerStrength * 0.32;
+  const nextScale = THREE.MathUtils.lerp(points.scale.x, scaleTarget, 0.06);
+  points.scale.setScalar(nextScale);
+  points.position.x = THREE.MathUtils.lerp(points.position.x, pointer.x * 0.8, 0.06);
+  points.position.y = THREE.MathUtils.lerp(points.position.y, pointer.y * 0.8, 0.06);
 
-    const vxPrev = velocities[idx];
-    const vyPrev = velocities[idx + 1];
-    const vzPrev = velocities[idx + 2];
-
-    const h = hash(i);
-    curlNoise(tmpFlow, px * 0.6, py * 0.6, pz * 0.6, elapsedTime * 0.2);
-    const flowScale = (h * 0.05 + 0.6) * 1.2;
-    const overshootX = vxPrev * flowScale * tmpFlow.x;
-    const overshootY = vyPrev * flowScale * tmpFlow.y;
-    const overshootZ = vzPrev * flowScale * tmpFlow.z;
-
-    const dx = tx - px;
-    const dy = ty - py;
-    const dz = tz - pz;
-    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    let dirX = 0;
-    let dirY = 0;
-    let dirZ = 0;
-    if (dist > 1e-5) {
-      const inv = 1 / dist;
-      dirX = dx * inv;
-      dirY = dy * inv;
-      dirZ = dz * inv;
-    }
-
-    const scale = clamp01(dist) * 0.04;
-    const speedScale = h * 0.35 + 0.6;
-    const speedX = dirX * scale * speedScale;
-    const speedY = dirY * scale * speedScale;
-    const speedZ = dirZ * scale * speedScale;
-
-    const combinedX = overshootX + speedX;
-    const combinedY = overshootY + speedY;
-    const combinedZ = overshootZ + speedZ;
-    const combinedLen = Math.sqrt(combinedX * combinedX + combinedY * combinedY + combinedZ * combinedZ) || 1e-6;
-
-    rotateY(tmpRot, px * 0.85, py * 0.85, pz * 0.85, elapsedTime * 0.3);
-    curlNoise(tmpWiggle, tmpRot.x, tmpRot.y, tmpRot.z, elapsedTime * wiggleSpeed);
-    const wiggleX = tmpWiggle.x * wigglePower;
-    const wiggleY = tmpWiggle.y * wigglePower;
-    const wiggleZ = tmpWiggle.z * wigglePower;
-
-    let newX = combinedX / combinedLen + wiggleX;
-    let newY = combinedY / combinedLen + wiggleY;
-    let newZ = combinedZ / combinedLen + wiggleZ;
-
-    const newLen = Math.sqrt(newX * newX + newY * newY + newZ * newZ) || 1e-6;
-    const velocityScale = combinedLen / newLen;
-    newX *= velocityScale;
-    newY *= velocityScale;
-    newZ *= velocityScale;
-
-    positions[idx] = px + newX * step;
-    positions[idx + 1] = py + newY * step;
-    positions[idx + 2] = pz + newZ * step;
-
-    velocities[idx] = newX;
-    velocities[idx + 1] = newY;
-    velocities[idx + 2] = newZ;
-  }
-
-  geometry.attributes.position.needsUpdate = true;
-
-  const pointerLerp = pointerActive ? 0.12 : 0.035;
-  pointer.x += (pointerTarget.x - pointer.x) * pointerLerp;
-  pointer.y += (pointerTarget.y - pointer.y) * pointerLerp;
-
-  particles.rotation.y += (pointer.x * 0.22 - particles.rotation.y) * pointerLerp;
-  particles.rotation.x += (pointer.y * 0.16 - particles.rotation.x) * pointerLerp;
-  particles.rotation.z += (pointer.x * -0.08 - particles.rotation.z) * pointerLerp;
-
-  const currentScale = particles.scale.x;
-  const scaleLerp = currentScale + (scaleTarget - currentScale) * (1 - Math.pow(0.0006, step));
-  particles.scale.setScalar(scaleLerp);
+  renderer.render(scene, camera);
 }
 
 function animate() {
   const delta = Math.min(clock.getDelta(), 1 / 30);
-  elapsedTime += delta;
+  elapsed += delta;
 
   if (autoCycleEnabled) {
     autoCycleTimer += delta;
@@ -500,9 +298,23 @@ function animate() {
     }
   }
 
-  update(delta);
-  renderer.render(scene, camera);
+  animateFrame(delta);
   requestAnimationFrame(animate);
+}
+
+applyTheme(THEMES[currentState], true);
+updatePositions(0);
+updateColors();
+ready = true;
+document.body.classList.add('hide-hint');
+postToParent({ type: 'AWA_SOUL_READY' });
+
+if (pendingRequest) {
+  const { state, options } = pendingRequest;
+  pendingRequest = null;
+  setSoulState(state, options);
+} else {
+  postToParent({ type: 'AWA_SOUL_STATE', state: currentState });
 }
 
 animate();
@@ -516,7 +328,7 @@ window.addEventListener('message', (event) => {
   switch (data.type) {
     case 'AWA_SOUL_SET_STATE':
       if (typeof data.state === 'string') {
-        setSoulState(data.state, { immediate: data.immediate === true });
+        requestState(data.state, { immediate: data.immediate === true });
       }
       break;
     case 'AWA_SOUL_TRIGGER':
@@ -524,8 +336,7 @@ window.addEventListener('message', (event) => {
       break;
     case 'AWA_SOUL_SET_AUTOCYCLE':
       if (typeof data.enabled === 'boolean') {
-        autoCycleEnabled = data.enabled;
-        autoCycleTimer = 0;
+        setAutoCycle(data.enabled);
       }
       break;
     default:

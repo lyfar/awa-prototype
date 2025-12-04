@@ -10,8 +10,13 @@ _GlobeRendererState? _globeController;
 
 class GlobeRenderer extends StatefulWidget {
   final GlobeConfig config;
+  final Color backgroundColor;
 
-  const GlobeRenderer({super.key, required this.config});
+  const GlobeRenderer({
+    super.key,
+    required this.config,
+    this.backgroundColor = Colors.black,
+  });
 
   @override
   State<GlobeRenderer> createState() => _GlobeRendererState();
@@ -65,6 +70,8 @@ class _GlobeRendererState extends State<GlobeRenderer> {
           ..style.width = '100%'
           ..style.height = '100%'
           ..style.zIndex = '0'
+          ..style.background = _colorToCss(widget.backgroundColor)
+          ..style.backgroundColor = _colorToCss(widget.backgroundColor)
           ..style.pointerEvents =
               widget.config.disableInteraction ? 'none' : 'auto';
 
@@ -219,6 +226,7 @@ class _GlobeRendererState extends State<GlobeRenderer> {
     final showUserLight = widget.config.showUserLight;
     final userLat = widget.config.userLatitude ?? 0.0;
     final userLng = widget.config.userLongitude ?? 0.0;
+    final backgroundCss = _colorToCss(widget.backgroundColor);
 
     return '''
 <!DOCTYPE html>
@@ -235,7 +243,7 @@ class _GlobeRendererState extends State<GlobeRenderer> {
             height: 100%;
         }
         body {
-            background: black;
+            background: $backgroundCss;
             overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             filter: none !important;
@@ -244,7 +252,7 @@ class _GlobeRendererState extends State<GlobeRenderer> {
         #globe-container {
             width: 100%;
             height: 100%;
-            background: black;
+            background: $backgroundCss;
         }
     </style>
 </head>
@@ -387,7 +395,12 @@ class _GlobeRendererState extends State<GlobeRenderer> {
             return current + (target - current) * factor;
         }
 
-        const HOLOGRAPHIC_COLORS = ['#90F5FF', '#9D7BFF', '#FF8FFB', '#7CFFB2', '#FFE27A'];
+        const HOLOGRAPHIC_COLORS = ['#FF8A50', '#DA747C', '#B65FA8', '#924AD3', '#6D34FF'];
+        const PRIMARY_GLOW = '#FF8A50';
+        const SECONDARY_GLOW = '#DA747C';
+        const TERTIARY_GLOW = '#B65FA8';
+        const ACCENT_GLOW = '#924AD3';
+        const DEEP_GLOW = '#6D34FF';
         
         function pickHolographicColor(offset = 0) {
             const index = (Math.floor(Math.random() * HOLOGRAPHIC_COLORS.length) + offset) % HOLOGRAPHIC_COLORS.length;
@@ -428,15 +441,15 @@ class _GlobeRendererState extends State<GlobeRenderer> {
         
         function applyHolographicAtmosphere() {
             globe.showAtmosphere(true);
-            globe.atmosphereColor('#90F5FF');
-            globe.atmosphereAltitude(0.22);
+            globe.atmosphereColor(DEEP_GLOW);
+            globe.atmosphereAltitude(0.26);
             const material = globe.globeMaterial();
-            material.color = new THREE.Color('#0d0f29');
-            material.emissive = new THREE.Color('#3947ff');
-            material.emissiveIntensity = 0.35;
-            material.shininess = 60;
+            material.color = new THREE.Color('#170b15');
+            material.emissive = new THREE.Color(SECONDARY_GLOW);
+            material.emissiveIntensity = 0.38;
+            material.shininess = 55;
             material.needsUpdate = true;
-            globe.backgroundColor('#05010d');
+            globe.backgroundColor('#120715');
         }
         
         function latLngToXY(lat, lng, width, height) {
@@ -543,16 +556,17 @@ class _GlobeRendererState extends State<GlobeRenderer> {
             const ctx = canvas.getContext('2d');
 
             const twilight = ctx.createLinearGradient(0, 0, width, height);
-            twilight.addColorStop(0, '#01030c');
-            twilight.addColorStop(0.35, '#050b1d');
-            twilight.addColorStop(0.7, '#071330');
-            twilight.addColorStop(1, '#02030b');
+            twilight.addColorStop(0, '#070307');
+            twilight.addColorStop(0.35, '#13060E');
+            twilight.addColorStop(0.7, '#1A0A26');
+            twilight.addColorStop(1, '#09040F');
             ctx.fillStyle = twilight;
             ctx.fillRect(0, 0, width, height);
 
             const aurora = ctx.createRadialGradient(width / 2, height / 2, width * 0.12, width / 2, height / 2, width * 0.48);
-            aurora.addColorStop(0, 'rgba(157, 123, 255, 0.15)');
-            aurora.addColorStop(1, 'rgba(157, 123, 255, 0)');
+            aurora.addColorStop(0, 'rgba(218, 116, 124, 0.18)');
+            aurora.addColorStop(0.55, 'rgba(146, 74, 211, 0.12)');
+            aurora.addColorStop(1, 'rgba(109, 52, 255, 0)');
             ctx.fillStyle = aurora;
             ctx.fillRect(0, 0, width, height);
 
@@ -874,7 +888,7 @@ class _GlobeRendererState extends State<GlobeRenderer> {
             clearGlobeTexture();
             globe.backgroundImageUrl(null);
             globe.showAtmosphere(false);
-            globe.backgroundColor('#02020b');
+            globe.backgroundColor('#11060F');
             currentVisualState = 'light';
             transitionStart = performance.now();
             orbitingParticles = [];
@@ -954,7 +968,7 @@ class _GlobeRendererState extends State<GlobeRenderer> {
             const spaceTexture = createSpaceTexture();
             setGlobeTexture(spaceTexture, 0.55, 1600);
             globe.backgroundImageUrl(null);
-            globe.backgroundColor('#020611');
+            globe.backgroundColor('#15081C');
             currentVisualState = 'awaSoul';
             transitionStart = performance.now();
             orbitingParticles = [];
@@ -1140,27 +1154,27 @@ class _GlobeRendererState extends State<GlobeRenderer> {
             const scene = globe.scene();
             
             if (!scene.getObjectByName('awa-holo-ambient')) {
-                const ambient = new THREE.AmbientLight(0x90f5ff, 0.9);
+                const ambient = new THREE.AmbientLight(0xff8a50, 0.75);
                 ambient.name = 'awa-holo-ambient';
                 scene.add(ambient);
             }
-            
+
             if (!scene.getObjectByName('awa-holo-directional')) {
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.1);
                 directionalLight.position.set(2, 1.5, 2);
                 directionalLight.name = 'awa-holo-directional';
                 scene.add(directionalLight);
             }
-            
+
             if (!scene.getObjectByName('awa-holo-point-1')) {
-                const pointLight1 = new THREE.PointLight(0x9d7bff, 0.9, 120);
+                const pointLight1 = new THREE.PointLight(0xb65fa8, 0.95, 120);
                 pointLight1.position.set(12, 8, 12);
                 pointLight1.name = 'awa-holo-point-1';
                 scene.add(pointLight1);
             }
-            
+
             if (!scene.getObjectByName('awa-holo-point-2')) {
-                const pointLight2 = new THREE.PointLight(0x7cffb2, 0.7, 120);
+                const pointLight2 = new THREE.PointLight(0x6d34ff, 1.05, 120);
                 pointLight2.position.set(-14, -6, 10);
                 pointLight2.name = 'awa-holo-point-2';
                 scene.add(pointLight2);
@@ -1334,5 +1348,23 @@ class _GlobeRendererState extends State<GlobeRenderer> {
   @override
   Widget build(BuildContext context) {
     return HtmlElementView(viewType: _viewType);
+  }
+
+  String _colorToCss(Color color) {
+    final alpha = (color.alpha / 255).clamp(0.0, 1.0);
+    final r = color.red;
+    final g = color.green;
+    final b = color.blue;
+    if (alpha >= 0.999) {
+      final hex =
+          color.value
+              .toRadixString(16)
+              .padLeft(8, '0')
+              .substring(2)
+              .toUpperCase();
+      return '#$hex';
+    }
+    final alphaStr = alpha.toStringAsFixed(3);
+    return 'rgba($r, $g, $b, $alphaStr)';
   }
 }

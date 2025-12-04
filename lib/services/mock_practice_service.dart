@@ -190,7 +190,7 @@ class MockPracticeService {
       
       print('MockPracticeService: Practice completed successfully');
       print('MockPracticeService: Completion stats - Practice: ${practice.getName()}, Duration: ${practice.duration.inMinutes}min');
-      print('MockPracticeService: Benefits achieved: ${practice.benefits.join(', ')}');
+      print('MockPracticeService: Highlights: ${practice.highlights.join(', ')}');
       
       // Clean up session
       _currentPractice = null;

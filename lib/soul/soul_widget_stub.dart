@@ -49,32 +49,34 @@ class _SoulRendererState extends State<SoulRenderer>
             : 1.0 + math.sin(t * math.pi * 2) * 0.08;
         return Container(
           color: widget.config.backgroundColor,
-          decoration: BoxDecoration(
-            gradient: RadialGradient(
-              colors: colors,
-              center: Alignment(0.0, -0.2),
-              radius: 1.2,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                colors: colors,
+                center: Alignment(0.0, -0.2),
+                radius: 1.2,
+              ),
             ),
-          ),
-          child: Center(
-            child: Transform.scale(
-              scale: scale,
-              child: Container(
-                width: 220,
-                height: 220,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x55FF5F8F),
-                      blurRadius: 80,
-                      spreadRadius: 12,
+            child: Center(
+              child: Transform.scale(
+                scale: scale,
+                child: Container(
+                  width: 220,
+                  height: 220,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x55FF5F8F),
+                        blurRadius: 80,
+                        spreadRadius: 12,
+                      ),
+                    ],
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFFF6FB1), Color(0xFFFFC96F)],
                     ),
-                  ],
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFFFF6FB1), Color(0xFFFFC96F)],
                   ),
                 ),
               ),

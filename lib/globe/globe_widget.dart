@@ -8,8 +8,13 @@ import 'globe_widget_stub.dart' if (dart.library.html) 'globe_widget_web.dart';
 /// - Globe: Earth + particles (welcome step 3, home screen)
 class GlobeWidget extends StatefulWidget {
   final GlobeConfig config;
+  final Color backgroundColor;
 
-  const GlobeWidget({super.key, required this.config});
+  const GlobeWidget({
+    super.key,
+    required this.config,
+    this.backgroundColor = Colors.black,
+  });
 
   @override
   State<GlobeWidget> createState() => _GlobeWidgetState();
@@ -43,8 +48,11 @@ class _GlobeWidgetState extends State<GlobeWidget> {
     );
     final height = widget.config.height;
     final globe = DecoratedBox(
-      decoration: const BoxDecoration(color: Colors.black),
-      child: GlobeRenderer(config: widget.config),
+      decoration: BoxDecoration(color: widget.backgroundColor),
+      child: GlobeRenderer(
+        config: widget.config,
+        backgroundColor: widget.backgroundColor,
+      ),
     );
 
     if (height.isFinite) {

@@ -28,7 +28,7 @@ class SoulConfig {
     this.disableInteraction = false,
     this.autoCycle = true,
     this.immediate = false,
-    this.backgroundColor = Colors.black,
+    this.backgroundColor = Colors.white,
   });
 
   factory SoulConfig.light({
@@ -41,7 +41,7 @@ class SoulConfig {
       disableInteraction: disableInteraction,
       autoCycle: false,
       immediate: true,
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.white,
     );
   }
 
@@ -55,7 +55,7 @@ class SoulConfig {
       height: height,
       disableInteraction: disableInteraction,
       autoCycle: autoCycle,
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.white,
     );
   }
 
@@ -69,7 +69,7 @@ class SoulConfig {
       height: height,
       disableInteraction: disableInteraction,
       autoCycle: autoCycle,
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.white,
     );
   }
 

@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
 import '../services/language_service.dart';
 
+const _sheetBackground = Colors.white;
+const _sheetBorderColor = Color(0xFFE3E8EF);
+const _sheetShadowColor = Color(0x1A111827);
+const _sheetPrimaryText = Color(0xFF111827);
+const _sheetSecondaryText = Color(0xFF475467);
+const _sheetHighlightBackground = Color(0xFFEFF4FF);
+const _sheetHighlightBorder = Color(0xFFD4DCFF);
+const _sheetAccent = Color(0xFF1F2937);
+
 /// Language switcher drawer widget
 /// Displays available languages and allows user selection
 class LanguageSwitcher extends StatefulWidget {
   final VoidCallback? onLanguageChanged;
   final bool isVisible;
-  
+
   const LanguageSwitcher({
     super.key,
     this.onLanguageChanged,
@@ -27,34 +36,26 @@ class _LanguageSwitcherState extends State<LanguageSwitcher>
   void initState() {
     super.initState();
     print('LanguageSwitcher: Initializing language switcher widget');
-    
+
     // Setup animations for smooth drawer appearance
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
-    _slideAnimation = Tween<double>(
-      begin: -1.0,
-      end: 0.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutCubic,
-    ));
-    
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
-    ));
+
+    _slideAnimation = Tween<double>(begin: -1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    );
   }
 
   @override
   void didUpdateWidget(LanguageSwitcher oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     // Animate drawer in/out based on visibility
     if (widget.isVisible != oldWidget.isVisible) {
       if (widget.isVisible) {
@@ -75,13 +76,13 @@ class _LanguageSwitcherState extends State<LanguageSwitcher>
 
   Future<void> _selectLanguage(String languageCode) async {
     print('LanguageSwitcher: User selected language: $languageCode');
-    
+
     // Update language service
     await LanguageService.setLanguage(languageCode);
-    
+
     // Notify parent widget
     widget.onLanguageChanged?.call();
-    
+
     print('LanguageSwitcher: Language change completed');
   }
 
@@ -91,25 +92,24 @@ class _LanguageSwitcherState extends State<LanguageSwitcher>
       animation: _animationController,
       builder: (context, child) {
         return Positioned(
-          left: 20 + (MediaQuery.of(context).size.width * 0.5 * _slideAnimation.value),
+          left:
+              20 +
+              (MediaQuery.of(context).size.width * 0.5 * _slideAnimation.value),
           top: 40,
           child: Opacity(
             opacity: _fadeAnimation.value,
             child: Container(
               width: MediaQuery.of(context).size.width * 0.5,
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.9),
+                color: _sheetBackground,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
-                  width: 1,
-                ),
-                boxShadow: [
+                border: Border.all(color: _sheetBorderColor, width: 1),
+                boxShadow: const [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
+                    color: _sheetShadowColor,
                     blurRadius: 20,
                     spreadRadius: 0,
-                    offset: const Offset(0, 8),
+                    offset: Offset(0, 10),
                   ),
                 ],
               ),
@@ -121,16 +121,12 @@ class _LanguageSwitcherState extends State<LanguageSwitcher>
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.language,
-                          color: Colors.white.withOpacity(0.8),
-                          size: 20,
-                        ),
+                        Icon(Icons.language, color: _sheetAccent, size: 20),
                         const SizedBox(width: 8),
                         Text(
                           LanguageService.getText('language'),
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
+                            color: _sheetPrimaryText,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             letterSpacing: -0.3,
@@ -139,16 +135,19 @@ class _LanguageSwitcherState extends State<LanguageSwitcher>
                       ],
                     ),
                   ),
-                  
+
                   // Language options
                   ...LanguageService.supportedLanguages.entries.map((entry) {
-                    final isSelected = entry.key == LanguageService.currentLanguage;
-                    
+                    final isSelected =
+                        entry.key == LanguageService.currentLanguage;
+
                     return Material(
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () => _selectLanguage(entry.key),
                         borderRadius: BorderRadius.circular(12),
+                        splashColor: _sheetAccent.withOpacity(0.08),
+                        highlightColor: Colors.transparent,
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(
@@ -160,29 +159,33 @@ class _LanguageSwitcherState extends State<LanguageSwitcher>
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: isSelected 
-                                ? Colors.white.withOpacity(0.1)
-                                : Colors.transparent,
+                            color:
+                                isSelected
+                                    ? _sheetHighlightBackground
+                                    : Colors.transparent,
                             borderRadius: BorderRadius.circular(12),
-                            border: isSelected
-                                ? Border.all(
-                                    color: Colors.white.withOpacity(0.3),
-                                    width: 1,
-                                  )
-                                : null,
+                            border:
+                                isSelected
+                                    ? Border.all(
+                                      color: _sheetHighlightBorder,
+                                      width: 1,
+                                    )
+                                    : null,
                           ),
                           child: Row(
                             children: [
                               Text(
                                 entry.value,
                                 style: TextStyle(
-                                  color: isSelected 
-                                      ? Colors.white
-                                      : Colors.white.withOpacity(0.7),
+                                  color:
+                                      isSelected
+                                          ? _sheetPrimaryText
+                                          : _sheetSecondaryText,
                                   fontSize: 15,
-                                  fontWeight: isSelected 
-                                      ? FontWeight.w600 
-                                      : FontWeight.w400,
+                                  fontWeight:
+                                      isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.w400,
                                   letterSpacing: -0.2,
                                 ),
                               ),
@@ -190,7 +193,7 @@ class _LanguageSwitcherState extends State<LanguageSwitcher>
                               if (isSelected)
                                 Icon(
                                   Icons.check_circle,
-                                  color: Colors.white.withOpacity(0.8),
+                                  color: _sheetAccent,
                                   size: 18,
                                 ),
                             ],
@@ -199,7 +202,7 @@ class _LanguageSwitcherState extends State<LanguageSwitcher>
                       ),
                     );
                   }),
-                  
+
                   const SizedBox(height: 8),
                 ],
               ),
