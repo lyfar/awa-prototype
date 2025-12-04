@@ -139,6 +139,17 @@ class _AwaSphereState extends State<AwaSphere>
     if (widget.animate) {
       _ticker.start();
     }
+
+    // Listen to global settings changes
+    if (widget.useGlobalSettings) {
+      AwaSoulSettings().addListener(_onSettingsChanged);
+    }
+  }
+
+  void _onSettingsChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _onTick(Duration elapsed) {
@@ -182,6 +193,9 @@ class _AwaSphereState extends State<AwaSphere>
 
   @override
   void dispose() {
+    if (widget.useGlobalSettings) {
+      AwaSoulSettings().removeListener(_onSettingsChanged);
+    }
     _ticker.dispose();
     super.dispose();
   }
@@ -233,14 +247,23 @@ class _AwaSphereState extends State<AwaSphere>
 
   @override
   Widget build(BuildContext context) {
-    final autoRotation = _time * _rotationSpeed * 2 * math.pi;
-    final breathPhase = math.sin(_time * _breathSpeed * 2 * math.pi);
-    final breathScale = 1.0 + breathPhase * 0.05;
-    final wavePhase = _time * _waveSpeed * 2 * math.pi;
-    final sparklePhase = _time * _sparkleSpeed * 2 * math.pi;
-
     // Use global settings or widget props
     final settings = widget.useGlobalSettings ? AwaSoulSettings() : null;
+
+    // Get animation multipliers from settings
+    final pulseSpeedMult = settings?.pulseSpeed ?? widget.pulseSpeed;
+    final driftSpeedMult = settings?.driftSpeed ?? widget.driftSpeed;
+    final flickerSpeedMult = settings?.flickerSpeed ?? widget.flickerSpeed;
+    final breathIntensity = settings?.breathingIntensity ?? 1.0;
+
+    // Apply speed multipliers to animation phases
+    final autoRotation = _time * _rotationSpeed * 2 * math.pi;
+    final breathPhase = math.sin(
+      _time * _breathSpeed * pulseSpeedMult * 2 * math.pi,
+    );
+    final breathScale = 1.0 + breathPhase * 0.05 * breathIntensity;
+    final wavePhase = _time * _waveSpeed * driftSpeedMult * 2 * math.pi;
+    final sparklePhase = _time * _sparkleSpeed * flickerSpeedMult * 2 * math.pi;
 
     return GestureDetector(
       onScaleStart: _handleScaleStart,

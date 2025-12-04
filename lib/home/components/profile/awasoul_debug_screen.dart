@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../soul/awa_sphere.dart';
 import '../../../soul/awa_soul_settings.dart';
 
@@ -29,6 +30,52 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
   
   void _onSettingsChanged() {
     setState(() {});
+  }
+  
+  void _copySettings() {
+    final export = '''
+AwaSoul Settings Export
+=======================
+// Light / Emissive
+emissiveIntensity: ${_settings.emissiveIntensity.toStringAsFixed(2)}
+coreIntensity: ${_settings.coreIntensity.toStringAsFixed(2)}
+glowRadius: ${_settings.glowRadius.toStringAsFixed(2)}
+glowSoftness: ${_settings.glowSoftness.toStringAsFixed(2)}
+haloOpacity: ${_settings.haloOpacity.toStringAsFixed(2)}
+additiveBlending: ${_settings.additiveBlending}
+
+// Bloom
+enableBloom: ${_settings.enableBloom}
+bloomIntensity: ${_settings.bloomIntensity.toStringAsFixed(2)}
+bloomRadius: ${_settings.bloomRadius.toStringAsFixed(2)}
+
+// 3D Particles
+particleCount: ${_settings.particleCount}
+particleSize: ${_settings.particleSize.toStringAsFixed(2)}
+
+// 2D Backdrop
+backdropDotCount: ${_settings.backdropDotCount}
+backdropDotSize: ${_settings.backdropDotSize.toStringAsFixed(2)}
+backdropOpacity: ${_settings.backdropOpacity.toStringAsFixed(2)}
+gradientStart: 0x${_settings.gradientStart.value.toRadixString(16).toUpperCase()}
+gradientMid: 0x${_settings.gradientMid.value.toRadixString(16).toUpperCase()}
+gradientEnd: 0x${_settings.gradientEnd.value.toRadixString(16).toUpperCase()}
+
+// Animation Speeds
+breathingIntensity: ${_settings.breathingIntensity.toStringAsFixed(2)}
+flickerSpeed: ${_settings.flickerSpeed.toStringAsFixed(2)}
+pulseSpeed: ${_settings.pulseSpeed.toStringAsFixed(2)}
+driftSpeed: ${_settings.driftSpeed.toStringAsFixed(2)}
+wobbleSpeed: ${_settings.wobbleSpeed.toStringAsFixed(2)}
+''';
+    
+    Clipboard.setData(ClipboardData(text: export));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Settings copied to clipboard!'),
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -89,6 +136,13 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
               ],
             ),
           ),
+          // Copy button
+          IconButton(
+            icon: const Icon(Icons.copy, color: Colors.black54, size: 20),
+            onPressed: _copySettings,
+            tooltip: 'Copy settings',
+          ),
+          // Reset button
           TextButton(
             onPressed: () {
               _settings.resetToDefaults();
@@ -104,18 +158,17 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
   }
   
   Widget _buildSpherePreview() {
+    // Force rebuild with key when settings change
     return Stack(
+      key: ValueKey('sphere_${_settings.flickerSpeed}_${_settings.pulseSpeed}_${_settings.driftSpeed}'),
       children: [
-        // Main sphere using global settings
-        const Positioned.fill(
+        Positioned.fill(
           child: AwaSphere(
             height: double.infinity,
             useGlobalSettings: true,
             interactive: true,
           ),
         ),
-        
-        // Bloom overlay (handled inside AwaSphere now)
       ],
     );
   }
@@ -136,24 +189,31 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
       child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
-          // Light section (most important for "light" effect)
+          // Light section
           _buildExpandableSection(
             id: 'light',
             title: 'Light / Emissive',
+            subtitle: 'HDR brightness & glow',
             icon: Icons.wb_sunny,
             color: Colors.amber,
             children: [
-              _buildSlider('Emissive', _settings.emissiveIntensity, 0.5, 3.0, 
+              _buildSlider('Emissive Intensity', 'HDR brightness multiplier', 
+                _settings.emissiveIntensity, 0.5, 3.0, 
                 (v) => _settings.emissiveIntensity = v),
-              _buildSlider('Core', _settings.coreIntensity, 1.0, 4.0, 
+              _buildSlider('Core Intensity', 'Particle center brightness', 
+                _settings.coreIntensity, 1.0, 4.0, 
                 (v) => _settings.coreIntensity = v),
-              _buildSlider('Glow Radius', _settings.glowRadius, 1.0, 6.0, 
+              _buildSlider('Glow Radius', 'Size of light spread', 
+                _settings.glowRadius, 1.0, 6.0, 
                 (v) => _settings.glowRadius = v),
-              _buildSlider('Glow Soft', _settings.glowSoftness, 2.0, 20.0, 
+              _buildSlider('Glow Softness', 'Blur amount for glow', 
+                _settings.glowSoftness, 2.0, 20.0, 
                 (v) => _settings.glowSoftness = v),
-              _buildSlider('Halo', _settings.haloOpacity, 0.1, 0.8, 
+              _buildSlider('Halo Opacity', 'Outer glow visibility', 
+                _settings.haloOpacity, 0.1, 0.8, 
                 (v) => _settings.haloOpacity = v),
-              _buildSwitch('Additive Blend', _settings.additiveBlending, 
+              _buildSwitch('Additive Blending', 'Simulate light addition', 
+                _settings.additiveBlending, 
                 (v) => _settings.additiveBlending = v),
             ],
           ),
@@ -162,17 +222,47 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
           _buildExpandableSection(
             id: 'bloom',
             title: 'Bloom Effect',
+            subtitle: 'Post-process light bleed',
             icon: Icons.flare,
             color: Colors.orange,
             children: [
-              _buildSwitch('Enable', _settings.enableBloom, 
+              _buildSwitch('Enable Bloom', 'Apply bloom filter', 
+                _settings.enableBloom, 
                 (v) => _settings.enableBloom = v),
               if (_settings.enableBloom) ...[
-                _buildSlider('Intensity', _settings.bloomIntensity, 0.1, 1.5, 
+                _buildSlider('Bloom Intensity', 'Strength of light bleed', 
+                  _settings.bloomIntensity, 0.1, 1.5, 
                   (v) => _settings.bloomIntensity = v),
-                _buildSlider('Radius', _settings.bloomRadius, 4.0, 25.0, 
+                _buildSlider('Bloom Radius', 'Size of bloom blur', 
+                  _settings.bloomRadius, 4.0, 25.0, 
                   (v) => _settings.bloomRadius = v),
               ],
+            ],
+          ),
+          
+          // Animation section
+          _buildExpandableSection(
+            id: 'anim',
+            title: 'Animation',
+            subtitle: 'Movement & twinkle speeds',
+            icon: Icons.animation,
+            color: Colors.purple,
+            children: [
+              _buildSlider('Breathing', 'Sphere scale pulsing intensity', 
+                _settings.breathingIntensity, 0.0, 2.0, 
+                (v) => _settings.breathingIntensity = v),
+              _buildSlider('Flicker Speed', 'Twinkle rate of particles', 
+                _settings.flickerSpeed, 0.2, 3.0, 
+                (v) => _settings.flickerSpeed = v),
+              _buildSlider('Pulse Speed', 'Particle brightness rhythm', 
+                _settings.pulseSpeed, 0.2, 3.0, 
+                (v) => _settings.pulseSpeed = v),
+              _buildSlider('Drift Speed', 'Floating movement rate', 
+                _settings.driftSpeed, 0.1, 2.0, 
+                (v) => _settings.driftSpeed = v),
+              _buildSlider('Wobble Speed', 'Shape distortion rate', 
+                _settings.wobbleSpeed, 0.2, 3.0, 
+                (v) => _settings.wobbleSpeed = v),
             ],
           ),
           
@@ -180,12 +270,15 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
           _buildExpandableSection(
             id: '3d',
             title: '3D Particles',
+            subtitle: 'Front layer light points',
             icon: Icons.blur_on,
             color: Colors.blue,
             children: [
-              _buildSlider('Count', _settings.particleCount.toDouble(), 100, 600, 
+              _buildSlider('Particle Count', 'Number of light points', 
+                _settings.particleCount.toDouble(), 100, 600, 
                 (v) => _settings.particleCount = v.round()),
-              _buildSlider('Size', _settings.particleSize, 1, 8, 
+              _buildSlider('Particle Size', 'Base size of each point', 
+                _settings.particleSize, 1, 8, 
                 (v) => _settings.particleSize = v),
             ],
           ),
@@ -194,37 +287,25 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
           _buildExpandableSection(
             id: '2d',
             title: '2D Backdrop',
+            subtitle: 'Background spiral pattern',
             icon: Icons.gradient,
             color: Colors.pink,
             children: [
-              _buildSlider('Dots', _settings.backdropDotCount.toDouble(), 100, 600, 
+              _buildSlider('Dot Count', 'Number of backdrop dots', 
+                _settings.backdropDotCount.toDouble(), 100, 600, 
                 (v) => _settings.backdropDotCount = v.round()),
-              _buildSlider('Dot Size', _settings.backdropDotSize, 2, 12, 
+              _buildSlider('Dot Size', 'Size of backdrop dots', 
+                _settings.backdropDotSize, 2, 12, 
                 (v) => _settings.backdropDotSize = v),
-              _buildSlider('Opacity', _settings.backdropOpacity, 0.2, 1.0, 
+              _buildSlider('Opacity', 'Backdrop visibility', 
+                _settings.backdropOpacity, 0.2, 1.0, 
                 (v) => _settings.backdropOpacity = v),
               const SizedBox(height: 8),
+              const Text('Gradient Colors', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
               _buildColorRow('Center', _settings.gradientStart, (c) => _settings.gradientStart = c),
               _buildColorRow('Middle', _settings.gradientMid, (c) => _settings.gradientMid = c),
               _buildColorRow('Edge', _settings.gradientEnd, (c) => _settings.gradientEnd = c),
-            ],
-          ),
-          
-          // Animation
-          _buildExpandableSection(
-            id: 'anim',
-            title: 'Animation',
-            icon: Icons.animation,
-            color: Colors.green,
-            children: [
-              _buildSlider('Flicker', _settings.flickerSpeed, 0.2, 3.0, 
-                (v) => _settings.flickerSpeed = v),
-              _buildSlider('Pulse', _settings.pulseSpeed, 0.2, 3.0, 
-                (v) => _settings.pulseSpeed = v),
-              _buildSlider('Drift', _settings.driftSpeed, 0.1, 2.0, 
-                (v) => _settings.driftSpeed = v),
-              _buildSlider('Wobble', _settings.wobbleSpeed, 0.2, 3.0, 
-                (v) => _settings.wobbleSpeed = v),
             ],
           ),
         ],
@@ -235,6 +316,7 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
   Widget _buildExpandableSection({
     required String id,
     required String title,
+    required String subtitle,
     required IconData icon,
     required Color color,
     required List<Widget> children,
@@ -258,17 +340,24 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
               child: Row(
                 children: [
                   Container(
-                    width: 28,
-                    height: 28,
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: color.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(icon, size: 16, color: color),
+                    child: Icon(icon, size: 18, color: color),
                   ),
-                  const SizedBox(width: 10),
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                  const Spacer(),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                      ],
+                    ),
+                  ),
                   Icon(isExpanded ? Icons.expand_less : Icons.expand_more, color: Colors.grey, size: 20),
                 ],
               ),
@@ -284,45 +373,67 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
     );
   }
   
-  Widget _buildSlider(String label, double value, double min, double max, ValueChanged<double> onChanged) {
+  Widget _buildSlider(String label, String hint, double value, double min, double max, ValueChanged<double> onChanged) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 65, child: Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600))),
-          Expanded(
-            child: SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 3,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-                activeTrackColor: Colors.orange.shade300,
-                inactiveTrackColor: Colors.grey.shade200,
-                thumbColor: Colors.orange,
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                    Text(hint, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+                  ],
+                ),
               ),
-              child: Slider(value: value, min: min, max: max, onChanged: onChanged),
-            ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  value < 10 ? value.toStringAsFixed(2) : value.round().toString(),
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
           ),
-          SizedBox(
-            width: 35,
-            child: Text(
-              value < 10 ? value.toStringAsFixed(1) : value.round().toString(),
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-              textAlign: TextAlign.right,
+          const SizedBox(height: 4),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 4,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+              activeTrackColor: Colors.orange,
+              inactiveTrackColor: Colors.grey.shade200,
+              thumbColor: Colors.orange,
             ),
+            child: Slider(value: value, min: min, max: max, onChanged: onChanged),
           ),
         ],
       ),
     );
   }
   
-  Widget _buildSwitch(String label, bool value, ValueChanged<bool> onChanged) {
+  Widget _buildSwitch(String label, String hint, bool value, ValueChanged<bool> onChanged) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-          const Spacer(),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                Text(hint, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+              ],
+            ),
+          ),
           Switch(value: value, onChanged: onChanged, activeColor: Colors.orange),
         ],
       ),
@@ -341,15 +452,18 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
             child: GestureDetector(
               onTap: () => onChanged(preset),
               child: Container(
-                width: 22,
-                height: 22,
+                width: 24,
+                height: 24,
                 decoration: BoxDecoration(
                   color: preset,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: color == preset ? Colors.black54 : Colors.grey.shade300,
-                    width: color == preset ? 2 : 1,
+                    color: color == preset ? Colors.black : Colors.grey.shade300,
+                    width: color == preset ? 2.5 : 1,
                   ),
+                  boxShadow: color == preset ? [
+                    BoxShadow(color: preset.withOpacity(0.5), blurRadius: 4),
+                  ] : null,
                 ),
               ),
             ),

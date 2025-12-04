@@ -30,6 +30,7 @@ class AwaSoulSettings extends ChangeNotifier {
   double _pulseSpeed = 1.0;
   double _driftSpeed = 1.0;
   double _wobbleSpeed = 1.0;
+  double _breathingIntensity = 1.0;  // How much the sphere "breathes" (0 = none, 1 = normal, 2 = heavy)
   
   // === LIGHT/EMISSIVE SETTINGS ===
   double _emissiveIntensity = 1.5;    // HDR-like brightness multiplier (1.0 = normal, 2.0+ = glowing)
@@ -62,6 +63,7 @@ class AwaSoulSettings extends ChangeNotifier {
   double get pulseSpeed => _pulseSpeed;
   double get driftSpeed => _driftSpeed;
   double get wobbleSpeed => _wobbleSpeed;
+  double get breathingIntensity => _breathingIntensity;
   double get emissiveIntensity => _emissiveIntensity;
   double get coreIntensity => _coreIntensity;
   double get glowRadius => _glowRadius;
@@ -88,6 +90,7 @@ class AwaSoulSettings extends ChangeNotifier {
   set pulseSpeed(double v) { _pulseSpeed = v; notifyListeners(); }
   set driftSpeed(double v) { _driftSpeed = v; notifyListeners(); }
   set wobbleSpeed(double v) { _wobbleSpeed = v; notifyListeners(); }
+  set breathingIntensity(double v) { _breathingIntensity = v; notifyListeners(); }
   set emissiveIntensity(double v) { _emissiveIntensity = v; notifyListeners(); }
   set coreIntensity(double v) { _coreIntensity = v; notifyListeners(); }
   set glowRadius(double v) { _glowRadius = v; notifyListeners(); }
@@ -153,6 +156,7 @@ class AwaSoulSettings extends ChangeNotifier {
     _pulseSpeed = 1.0;
     _driftSpeed = 1.0;
     _wobbleSpeed = 1.0;
+    _breathingIntensity = 1.0;
     _emissiveIntensity = 1.5;
     _coreIntensity = 2.0;
     _glowRadius = 3.0;
