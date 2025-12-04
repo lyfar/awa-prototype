@@ -417,19 +417,23 @@ class _AwaSphereParticles extends CustomPainter {
     final depthFactor = (particle.z + 1) / 2; // 0 to 1, back to front
     final pos = center + Offset(particle.x, particle.y);
     
-    // Blink effect - each particle pulses
-    final blinkPhase = math.sin(sparklePhase * 2.0 + particle.index * 0.15);
-    final blinkFactor = 0.5 + blinkPhase * 0.5; // 0.0 to 1.0
+    // Blink/twinkle effect - each star pulses
+    final blinkPhase = math.sin(sparklePhase * 2.5 + particle.index * 0.12);
+    final blinkFactor = 0.4 + blinkPhase * 0.6; // 0.0 to 1.0
+    
+    // Secondary shimmer (faster)
+    final shimmer = math.sin(sparklePhase * 5.0 + particle.index * 0.3);
+    final shimmerFactor = 0.85 + shimmer * 0.15;
     
     // Color gradient across sphere
     final normalizedX = (particle.x / radius + 1) / 2;
     final normalizedY = (particle.y / radius + 1) / 2;
     final gradientFactor = (normalizedX * 0.5 + normalizedY * 0.5);
     
-    // Gradient colors matching backdrop
-    const warmColor = Color(0xFFFEC0A2);  // Warm peach
-    const midColor = Color(0xFFEFABBF);   // Pink
-    const coolColor = Color(0xFFB89FC1);  // Lavender
+    // Gradient colors - slightly brighter
+    const warmColor = Color(0xFFFFD4B8);  // Bright warm peach
+    const midColor = Color(0xFFF8C0D8);   // Bright pink
+    const coolColor = Color(0xFFD0B8E0);  // Bright lavender
     
     Color baseColor;
     if (gradientFactor < 0.5) {
@@ -438,32 +442,123 @@ class _AwaSphereParticles extends CustomPainter {
       baseColor = Color.lerp(midColor, warmColor, (gradientFactor - 0.5) * 2)!;
     }
     
-    // Brightness with blink
-    final brightness = (0.6 + depthFactor * 0.4) * (0.7 + blinkFactor * 0.3);
+    // Brightness with blink and shimmer
+    final brightness = (0.5 + depthFactor * 0.5) * blinkFactor * shimmerFactor;
     final opacity = math.min(1.0, brightness);
-    final sizeMultiplier = (0.7 + depthFactor * 0.3) * (1 + particle.waveOffset * 0.06);
-    final currentSize = particleSize * sizeMultiplier * (0.9 + blinkFactor * 0.1);
+    final sizeMultiplier = (0.6 + depthFactor * 0.4) * (1 + particle.waveOffset * 0.05);
+    final currentSize = particleSize * sizeMultiplier * (0.85 + blinkFactor * 0.15);
+    
+    // === STAR RAYS - Draw cross pattern for star effect ===
+    if (depthFactor > 0.4 && blinkFactor > 0.5) {
+      final rayLength = currentSize * (4.0 + blinkFactor * 3.0);
+      final rayWidth = currentSize * 0.3;
+      final rayOpacity = opacity * 0.5 * (blinkFactor - 0.3);
+      
+      // Horizontal ray
+      final hRayPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            Colors.transparent,
+            Colors.white.withOpacity(rayOpacity * 0.3),
+            Colors.white.withOpacity(rayOpacity),
+            Colors.white.withOpacity(rayOpacity * 0.3),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
+        ).createShader(Rect.fromCenter(center: pos, width: rayLength * 2, height: rayWidth))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1);
+      canvas.drawRect(
+        Rect.fromCenter(center: pos, width: rayLength * 2, height: rayWidth),
+        hRayPaint,
+      );
+      
+      // Vertical ray
+      final vRayPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.transparent,
+            Colors.white.withOpacity(rayOpacity * 0.3),
+            Colors.white.withOpacity(rayOpacity),
+            Colors.white.withOpacity(rayOpacity * 0.3),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
+        ).createShader(Rect.fromCenter(center: pos, width: rayWidth, height: rayLength * 2))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1);
+      canvas.drawRect(
+        Rect.fromCenter(center: pos, width: rayWidth, height: rayLength * 2),
+        vRayPaint,
+      );
+      
+      // Diagonal rays for brighter stars
+      if (blinkFactor > 0.7 && depthFactor > 0.55) {
+        canvas.save();
+        canvas.translate(pos.dx, pos.dy);
+        canvas.rotate(math.pi / 4);
+        
+        final diagRayLength = rayLength * 0.7;
+        final diagOpacity = rayOpacity * 0.6;
+        
+        // Diagonal ray 1
+        final d1Paint = Paint()
+          ..shader = LinearGradient(
+            colors: [
+              Colors.transparent,
+              Colors.white.withOpacity(diagOpacity),
+              Colors.transparent,
+            ],
+          ).createShader(Rect.fromCenter(center: Offset.zero, width: diagRayLength * 2, height: rayWidth * 0.7))
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1);
+        canvas.drawRect(
+          Rect.fromCenter(center: Offset.zero, width: diagRayLength * 2, height: rayWidth * 0.7),
+          d1Paint,
+        );
+        
+        // Diagonal ray 2
+        final d2Paint = Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.transparent,
+              Colors.white.withOpacity(diagOpacity),
+              Colors.transparent,
+            ],
+          ).createShader(Rect.fromCenter(center: Offset.zero, width: rayWidth * 0.7, height: diagRayLength * 2))
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1);
+        canvas.drawRect(
+          Rect.fromCenter(center: Offset.zero, width: rayWidth * 0.7, height: diagRayLength * 2),
+          d2Paint,
+        );
+        
+        canvas.restore();
+      }
+    }
     
     // === BLOOM EFFECT - Multiple blur layers ===
     
-    // Layer 1: Very large soft bloom (like real light scatter)
+    // Layer 1: Very large soft bloom
     if (depthFactor > 0.25) {
-      final bloomRadius = currentSize * 5.0;
-      final bloomOpacity = opacity * 0.2 * blinkFactor;
+      final bloomRadius = currentSize * 6.0;
+      final bloomOpacity = opacity * 0.25 * blinkFactor;
       final bloomPaint = Paint()
         ..color = baseColor.withOpacity(bloomOpacity)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
       canvas.drawCircle(pos, bloomRadius, bloomPaint);
     }
     
-    // Layer 2: Medium bloom
+    // Layer 2: Medium bloom with color
     if (depthFactor > 0.3) {
-      final midBloomRadius = currentSize * 3.0;
+      final midBloomRadius = currentSize * 3.5;
       final midBloomPaint = Paint()
         ..shader = RadialGradient(
           colors: [
-            Colors.white.withOpacity(opacity * 0.3 * blinkFactor),
-            baseColor.withOpacity(opacity * 0.25 * blinkFactor),
+            Colors.white.withOpacity(opacity * 0.4 * blinkFactor),
+            baseColor.withOpacity(opacity * 0.3 * blinkFactor),
             Colors.transparent,
           ],
           stops: const [0.0, 0.4, 1.0],
@@ -473,12 +568,12 @@ class _AwaSphereParticles extends CustomPainter {
     }
     
     // Layer 3: Inner glow
-    final innerGlowRadius = currentSize * 1.8;
+    final innerGlowRadius = currentSize * 2.0;
     final innerGlowPaint = Paint()
       ..shader = RadialGradient(
         colors: [
-          Colors.white.withOpacity(opacity * 0.6 * blinkFactor),
-          baseColor.withOpacity(opacity * 0.4 * blinkFactor),
+          Colors.white.withOpacity(opacity * 0.7 * blinkFactor),
+          baseColor.withOpacity(opacity * 0.5 * blinkFactor),
           Colors.transparent,
         ],
         stops: const [0.0, 0.5, 1.0],
@@ -487,7 +582,7 @@ class _AwaSphereParticles extends CustomPainter {
     canvas.drawCircle(pos, innerGlowRadius, innerGlowPaint);
     
     // Layer 4: Bright core
-    final coreColor = Color.lerp(baseColor, Colors.white, 0.7)!;
+    final coreColor = Color.lerp(baseColor, Colors.white, 0.8)!;
     final corePaint = Paint()
       ..shader = RadialGradient(
         colors: [
@@ -498,21 +593,21 @@ class _AwaSphereParticles extends CustomPainter {
       ).createShader(Rect.fromCircle(center: pos, radius: currentSize));
     canvas.drawCircle(pos, currentSize, corePaint);
     
-    // Layer 5: Hot white center
-    if (depthFactor > 0.35) {
+    // Layer 5: Hot white center - the "star point"
+    if (depthFactor > 0.3) {
       final hotCenterPaint = Paint()
-        ..color = Colors.white.withOpacity(opacity * 0.95 * blinkFactor)
+        ..color = Colors.white.withOpacity(opacity * 0.98 * blinkFactor)
         ..style = PaintingStyle.fill;
-      canvas.drawCircle(pos, currentSize * 0.5, hotCenterPaint);
+      canvas.drawCircle(pos, currentSize * 0.55, hotCenterPaint);
     }
     
-    // Intense sparkle flash on some particles
-    if (particle.sparkle > 0.8 && blinkFactor > 0.7 && depthFactor > 0.5) {
-      // Extra bright flash
+    // Extra intense flash on some stars
+    if (particle.sparkle > 0.85 && blinkFactor > 0.8 && depthFactor > 0.5) {
+      // Bright starburst flash
       final flashPaint = Paint()
-        ..color = Colors.white.withOpacity(0.95)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
-      canvas.drawCircle(pos, currentSize * 0.6, flashPaint);
+        ..color = Colors.white
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+      canvas.drawCircle(pos, currentSize * 0.8, flashPaint);
     }
   }
 
