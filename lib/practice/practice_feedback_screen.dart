@@ -61,12 +61,13 @@ class _PracticeFeedbackScreenState extends State<PracticeFeedbackScreen> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // AwaSphere at top - standard size for consistency
+          // AwaSphere at top - half screen size
           const Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: AwaSphereHeader(
+              halfScreen: true,
               interactive: false,
             ),
           ),

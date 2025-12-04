@@ -130,13 +130,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       body: Stack(
         children: [
           // AwaSphere at top (Only for Light phases)
-          // AwaSphere at top - standard size for consistency
+          // AwaSphere at top - half screen size
           if (_isLightMode)
             const Positioned(
               top: 0,
               left: 0,
               right: 0,
               child: AwaSphereHeader(
+                halfScreen: true,
                 interactive: false,
               ),
             ),

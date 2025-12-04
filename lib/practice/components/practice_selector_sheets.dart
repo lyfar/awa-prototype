@@ -313,6 +313,25 @@ class PracticeInfoSheet extends StatelessWidget {
     }
   }
 
+  Widget _buildInfoParagraph(String label, String value) {
+    return RichText(
+      text: TextSpan(
+        style: GoogleFonts.urbanist(
+          fontSize: 14,
+          color: Colors.black54,
+          height: 1.5,
+        ),
+        children: [
+          TextSpan(
+            text: '$label: ',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          TextSpan(text: value),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = _content;
@@ -432,16 +451,54 @@ class PracticeInfoSheet extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          content.subtitle,
-                          style: GoogleFonts.urbanist(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: _getTypeColor(),
-                            letterSpacing: 0.5,
-                          ),
+                        // Duration badge at top - important info
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _getTypeColor().withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.timer_outlined,
+                                    size: 16,
+                                    color: _getTypeColor(),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    content.duration,
+                                    style: GoogleFonts.urbanist(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: _getTypeColor(),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (content.hasCustomDuration) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                'You choose',
+                                style: GoogleFonts.urbanist(
+                                  fontSize: 12,
+                                  color: Colors.black38,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
-                        const SizedBox(height: 4),
+
+                        const SizedBox(height: 16),
+
+                        // Title
                         Text(
                           content.title,
                           style: GoogleFonts.playfairDisplay(
@@ -453,93 +510,90 @@ class PracticeInfoSheet extends StatelessWidget {
 
                         const SizedBox(height: 16),
 
+                        // Full description text
                         Text(
                           content.description,
                           style: GoogleFonts.urbanist(
                             fontSize: 15,
                             color: Colors.black54,
-                            height: 1.6,
+                            height: 1.7,
                           ),
                         ),
 
-                        const SizedBox(height: 20),
+                        // Theme/Aim/Outcome as flowing text if available
+                        if (content.theme != null || content.aim != null || content.outcome != null) ...[
+                          const SizedBox(height: 20),
+                          if (content.theme != null) ...[
+                            _buildInfoParagraph('Theme', content.theme!),
+                            const SizedBox(height: 12),
+                          ],
+                          if (content.aim != null) ...[
+                            _buildInfoParagraph('Aim', content.aim!),
+                            const SizedBox(height: 12),
+                          ],
+                          if (content.outcome != null)
+                            _buildInfoParagraph('Outcome', content.outcome!),
+                        ],
 
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: content.highlights
-                              .map((h) => InfoChip(label: h, color: _getTypeColor()))
-                              .toList(),
-                        ),
+                        if (content.eventTime != null) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF8F0),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _getTypeColor().withOpacity(0.2),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.schedule,
+                                  size: 18,
+                                  color: _getTypeColor(),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Available at ${content.eventTime}',
+                                  style: GoogleFonts.urbanist(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: _getTypeColor(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
 
                         const SizedBox(height: 28),
 
-                        // Emotion radial chart
+                        // Emotional Profile - what feelings this practice evokes
+                        Text(
+                          'What You May Feel',
+                          style: GoogleFonts.playfairDisplay(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Common emotional responses from this practice',
+                          style: GoogleFonts.urbanist(
+                            fontSize: 13,
+                            color: Colors.black38,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
                         Center(
-                          child: Column(
-                            children: [
-                              Text(
-                                'Emotional Profile',
-                                style: GoogleFonts.urbanist(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black45,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              RadialEmotionChart(
-                                profile: _getEmotionProfile(),
-                                size: 240,
-                                primaryColor: _getTypeColor(),
-                                secondaryColor: _getTypeColor().withOpacity(0.4),
-                              ),
-                            ],
+                          child: RadialEmotionChart(
+                            profile: _getEmotionProfile(),
+                            size: 260,
+                            accentColor: _getTypeColor(),
                           ),
                         ),
-
-                        const SizedBox(height: 24),
-
-                        if (content.theme != null) ...[
-                          InfoRow(
-                            icon: Icons.lightbulb_outline,
-                            label: 'Theme',
-                            value: content.theme!,
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                        if (content.aim != null) ...[
-                          InfoRow(
-                            icon: Icons.flag_outlined,
-                            label: 'Aim',
-                            value: content.aim!,
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                        if (content.outcome != null) ...[
-                          InfoRow(
-                            icon: Icons.emoji_events_outlined,
-                            label: 'Outcome',
-                            value: content.outcome!,
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-
-                        InfoRow(
-                          icon: Icons.timer_outlined,
-                          label: 'Duration',
-                          value: content.duration,
-                          trailing: content.hasCustomDuration ? 'You choose' : null,
-                        ),
-
-                        if (content.eventTime != null) ...[
-                          const SizedBox(height: 12),
-                          InfoRow(
-                            icon: Icons.schedule,
-                            label: 'Available at',
-                            value: content.eventTime!,
-                            highlight: true,
-                          ),
-                        ],
 
                         if (content.modalities != null) ...[
                           const SizedBox(height: 20),
@@ -781,25 +835,21 @@ class SavedInfoSheet extends StatelessWidget {
               const SizedBox(height: 24),
 
               // Emotion radial chart
+              const SizedBox(height: 8),
+              Text(
+                'What You May Feel',
+                style: GoogleFonts.urbanist(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black45,
+                ),
+              ),
+              const SizedBox(height: 12),
               Center(
-                child: Column(
-                  children: [
-                    Text(
-                      'Emotional Profile',
-                      style: GoogleFonts.urbanist(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black45,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    RadialEmotionChart(
-                      profile: _emotionProfile,
-                      size: 200,
-                      primaryColor: _typeColor,
-                      secondaryColor: _typeColor.withOpacity(0.4),
-                    ),
-                  ],
+                child: RadialEmotionChart(
+                  profile: _emotionProfile,
+                  size: 200,
+                  accentColor: _typeColor,
                 ),
               ),
 

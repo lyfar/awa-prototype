@@ -162,8 +162,8 @@ class _PracticeSelectorScreenState extends State<PracticeSelectorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Use standard sphere height for consistency across all screens
-    const sphereHeight = AwaSphereConfig.standardHeight;
+    // Use lobby sphere height (1/3 screen) for the selector
+    const sphereHeight = AwaSphereConfig.lobbyHeight;
 
     return Scaffold(
       backgroundColor: Colors.white,

@@ -4,8 +4,11 @@ import 'package:flutter/scheduler.dart';
 
 /// Standard sphere configuration for consistent sizing across the app
 class AwaSphereConfig {
-  /// Standard height for the sphere header (1/3 of typical screen)
-  static const double standardHeight = 280;
+  /// Standard height for lobby screens (1/3 of screen)
+  static const double lobbyHeight = 280;
+  
+  /// Half-screen height ratio for other screens
+  static const double halfScreenRatio = 0.5;
   
   /// Primary coral/peach color
   static const Color primaryColor = Color(0xFFFCB29C);
@@ -21,6 +24,11 @@ class AwaSphereConfig {
   
   /// Standard particle size
   static const double particleSize = 4.0;
+  
+  /// Get height for half-screen mode
+  static double getHalfScreenHeight(BuildContext context) {
+    return MediaQuery.of(context).size.height * halfScreenRatio;
+  }
 }
 
 /// AwaSphere - A beautiful interactive phyllotaxis spiral sphere
@@ -42,7 +50,7 @@ class AwaSphere extends StatefulWidget {
   const AwaSphere({
     super.key,
     this.width,
-    this.height = AwaSphereConfig.standardHeight,
+    this.height = AwaSphereConfig.lobbyHeight,
     this.primaryColor = AwaSphereConfig.primaryColor,
     this.secondaryColor = AwaSphereConfig.secondaryColor,
     this.accentColor,
@@ -376,6 +384,8 @@ class _Particle {
 /// Use this across all screens for uniform appearance
 class AwaSphereHeader extends StatelessWidget {
   final double? height;
+  /// If true, uses half the screen height (for non-lobby screens)
+  final bool halfScreen;
   final Color? primaryColor;
   final Color? secondaryColor;
   final Color? accentColor;
@@ -386,6 +396,7 @@ class AwaSphereHeader extends StatelessWidget {
   const AwaSphereHeader({
     super.key,
     this.height,
+    this.halfScreen = false,
     this.primaryColor,
     this.secondaryColor,
     this.accentColor,
@@ -396,7 +407,9 @@ class AwaSphereHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final h = height ?? AwaSphereConfig.standardHeight;
+    // Use explicit height, or half screen if specified, or default lobby height
+    final h = height ?? 
+        (halfScreen ? AwaSphereConfig.getHalfScreenHeight(context) : AwaSphereConfig.lobbyHeight);
     final primary = primaryColor ?? AwaSphereConfig.primaryColor;
     final secondary = secondaryColor ?? AwaSphereConfig.secondaryColor;
     final accent = accentColor ?? AwaSphereConfig.accentColor;
