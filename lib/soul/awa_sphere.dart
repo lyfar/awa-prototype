@@ -325,16 +325,16 @@ class _AwaSphereParticles extends CustomPainter {
     final backdropRadius = radius * 1.08;
     final dotCount = 380;
     
-    // Gradient colors from the design
+    // Warm fire gradient colors
     const gradientColors = [
-      Color(0xFFB89FC1), // 14% - lavender
-      Color(0xFFEFABBF), // 46% - pink
-      Color(0xFFFDB196), // 61% - peach coral
-      Color(0xFFFBAD99), // 75% - salmon
-      Color(0xFFFEC0A2), // 80% - light peach
-      Color(0xFFFABF9E), // 94% - warm peach
+      Color(0xFFE8C8B8), // 10% - soft warm beige (center)
+      Color(0xFFF5D0B0), // 30% - warm cream
+      Color(0xFFFFD4A8), // 50% - golden peach
+      Color(0xFFFFBF90), // 65% - warm orange
+      Color(0xFFE8A090), // 80% - coral rose
+      Color(0xFFD8A0A8), // 95% - dusty rose (edge)
     ];
-    const gradientStops = [0.14, 0.46, 0.61, 0.75, 0.80, 0.94];
+    const gradientStops = [0.10, 0.30, 0.50, 0.65, 0.80, 0.95];
     
     // Draw backdrop spiral dots with gradient and blink
     for (int i = 0; i < dotCount; i++) {
@@ -361,9 +361,9 @@ class _AwaSphereParticles extends CustomPainter {
         }
       }
       
-      // Blink factor based on sparkle phase and dot index
-      final blinkPhase = math.sin(sparklePhase * 1.5 + i * 0.08);
-      final blinkFactor = 0.6 + blinkPhase * 0.4; // 0.2 to 1.0
+      // Gentle blink - slower and subtler
+      final blinkPhase = math.sin(sparklePhase * 0.6 + i * 0.06);
+      final blinkFactor = 0.75 + blinkPhase * 0.25; // 0.5 to 1.0
       
       // Dot size with slight variation
       final sizeVariation = math.sin(i * 0.5) * 0.3;
@@ -415,199 +415,167 @@ class _AwaSphereParticles extends CustomPainter {
 
   void _drawLightParticle(Canvas canvas, Offset center, _Particle particle, double radius) {
     final depthFactor = (particle.z + 1) / 2; // 0 to 1, back to front
-    final pos = center + Offset(particle.x, particle.y);
     
-    // Blink/twinkle effect - each star pulses
-    final blinkPhase = math.sin(sparklePhase * 2.5 + particle.index * 0.12);
-    final blinkFactor = 0.4 + blinkPhase * 0.6; // 0.0 to 1.0
+    // === GENTLE DRIFT - very slight position movement ===
+    final driftX = math.sin(sparklePhase * 0.3 + particle.index * 0.5) * 1.5;
+    final driftY = math.cos(sparklePhase * 0.25 + particle.index * 0.7) * 1.2;
+    final pos = center + Offset(particle.x + driftX, particle.y + driftY);
     
-    // Secondary shimmer (faster)
-    final shimmer = math.sin(sparklePhase * 5.0 + particle.index * 0.3);
-    final shimmerFactor = 0.85 + shimmer * 0.15;
+    // === ORGANIC SIZE VARIATION ===
+    // Each particle has unique base size (0.5x to 2x)
+    final sizeVariation = 0.5 + (math.sin(particle.index * 1.7) + 1) * 0.75;
     
-    // Color gradient across sphere
+    // Gentle flicker - slower, more subtle
+    final flicker1 = math.sin(sparklePhase * 1.8 + particle.index * 0.4);
+    final flicker2 = math.cos(sparklePhase * 1.4 + particle.index * 0.7);
+    final flickerFactor = 0.85 + flicker1 * 0.08 + flicker2 * 0.07;
+    
+    // Slow pulse (breathing)
+    final pulse = math.sin(sparklePhase * 0.8 + particle.index * 0.15);
+    final pulseFactor = 0.9 + pulse * 0.1;
+    
+    // === WARM FIRE COLORS ===
+    // Gradient from white-hot center → orange → deep amber
     final normalizedX = (particle.x / radius + 1) / 2;
     final normalizedY = (particle.y / radius + 1) / 2;
-    final gradientFactor = (normalizedX * 0.5 + normalizedY * 0.5);
+    final gradientFactor = (normalizedX * 0.4 + normalizedY * 0.6);
     
-    // Gradient colors - slightly brighter
-    const warmColor = Color(0xFFFFD4B8);  // Bright warm peach
-    const midColor = Color(0xFFF8C0D8);   // Bright pink
-    const coolColor = Color(0xFFD0B8E0);  // Bright lavender
+    // Fire color palette - warm and organic
+    const hotWhite = Color(0xFFFFF8F0);     // White hot
+    const brightYellow = Color(0xFFFFE4B5); // Moccasin/warm yellow
+    const warmOrange = Color(0xFFFFB07C);   // Warm orange
+    const deepAmber = Color(0xFFE8967C);    // Deep amber/coral
+    const softRose = Color(0xFFDDA0A0);     // Soft rose for cooler parts
     
     Color baseColor;
-    if (gradientFactor < 0.5) {
-      baseColor = Color.lerp(coolColor, midColor, gradientFactor * 2)!;
+    Color coreColor;
+    if (gradientFactor < 0.3) {
+      baseColor = Color.lerp(softRose, deepAmber, gradientFactor / 0.3)!;
+      coreColor = Color.lerp(warmOrange, brightYellow, gradientFactor / 0.3)!;
+    } else if (gradientFactor < 0.6) {
+      baseColor = Color.lerp(deepAmber, warmOrange, (gradientFactor - 0.3) / 0.3)!;
+      coreColor = Color.lerp(brightYellow, hotWhite, (gradientFactor - 0.3) / 0.3)!;
     } else {
-      baseColor = Color.lerp(midColor, warmColor, (gradientFactor - 0.5) * 2)!;
+      baseColor = Color.lerp(warmOrange, brightYellow, (gradientFactor - 0.6) / 0.4)!;
+      coreColor = hotWhite;
     }
     
-    // Brightness with blink and shimmer
-    final brightness = (0.5 + depthFactor * 0.5) * blinkFactor * shimmerFactor;
+    // Brightness combines depth, flicker, and pulse
+    final brightness = (0.5 + depthFactor * 0.5) * flickerFactor * pulseFactor;
     final opacity = math.min(1.0, brightness);
-    final sizeMultiplier = (0.6 + depthFactor * 0.4) * (1 + particle.waveOffset * 0.05);
-    final currentSize = particleSize * sizeMultiplier * (0.85 + blinkFactor * 0.15);
     
-    // === STAR RAYS - Draw cross pattern for star effect ===
-    if (depthFactor > 0.4 && blinkFactor > 0.5) {
-      final rayLength = currentSize * (4.0 + blinkFactor * 3.0);
-      final rayWidth = currentSize * 0.3;
-      final rayOpacity = opacity * 0.5 * (blinkFactor - 0.3);
-      
-      // Horizontal ray
-      final hRayPaint = Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            Colors.transparent,
-            Colors.white.withOpacity(rayOpacity * 0.3),
-            Colors.white.withOpacity(rayOpacity),
-            Colors.white.withOpacity(rayOpacity * 0.3),
-            Colors.transparent,
-          ],
-          stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
-        ).createShader(Rect.fromCenter(center: pos, width: rayLength * 2, height: rayWidth))
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1);
-      canvas.drawRect(
-        Rect.fromCenter(center: pos, width: rayLength * 2, height: rayWidth),
-        hRayPaint,
-      );
-      
-      // Vertical ray
-      final vRayPaint = Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.transparent,
-            Colors.white.withOpacity(rayOpacity * 0.3),
-            Colors.white.withOpacity(rayOpacity),
-            Colors.white.withOpacity(rayOpacity * 0.3),
-            Colors.transparent,
-          ],
-          stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
-        ).createShader(Rect.fromCenter(center: pos, width: rayWidth, height: rayLength * 2))
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1);
-      canvas.drawRect(
-        Rect.fromCenter(center: pos, width: rayWidth, height: rayLength * 2),
-        vRayPaint,
-      );
-      
-      // Diagonal rays for brighter stars
-      if (blinkFactor > 0.7 && depthFactor > 0.55) {
-        canvas.save();
-        canvas.translate(pos.dx, pos.dy);
-        canvas.rotate(math.pi / 4);
-        
-        final diagRayLength = rayLength * 0.7;
-        final diagOpacity = rayOpacity * 0.6;
-        
-        // Diagonal ray 1
-        final d1Paint = Paint()
-          ..shader = LinearGradient(
-            colors: [
-              Colors.transparent,
-              Colors.white.withOpacity(diagOpacity),
-              Colors.transparent,
-            ],
-          ).createShader(Rect.fromCenter(center: Offset.zero, width: diagRayLength * 2, height: rayWidth * 0.7))
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1);
-        canvas.drawRect(
-          Rect.fromCenter(center: Offset.zero, width: diagRayLength * 2, height: rayWidth * 0.7),
-          d1Paint,
-        );
-        
-        // Diagonal ray 2
-        final d2Paint = Paint()
-          ..shader = LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.transparent,
-              Colors.white.withOpacity(diagOpacity),
-              Colors.transparent,
-            ],
-          ).createShader(Rect.fromCenter(center: Offset.zero, width: rayWidth * 0.7, height: diagRayLength * 2))
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1);
-        canvas.drawRect(
-          Rect.fromCenter(center: Offset.zero, width: rayWidth * 0.7, height: diagRayLength * 2),
-          d2Paint,
-        );
-        
-        canvas.restore();
-      }
-    }
+    // Size with all variations
+    final sizeMultiplier = sizeVariation * (0.6 + depthFactor * 0.4) * flickerFactor;
+    final currentSize = particleSize * sizeMultiplier;
     
-    // === BLOOM EFFECT - Multiple blur layers ===
+    // === ORGANIC SHAPE - Gentle wobbly edges ===
+    // Create irregular shape using multiple offset circles - slower movement
+    final wobble1 = math.sin(sparklePhase * 1.2 + particle.index) * currentSize * 0.12;
+    final wobble2 = math.cos(sparklePhase * 1.0 + particle.index * 1.3) * currentSize * 0.1;
+    final wobble3 = math.sin(sparklePhase * 1.5 + particle.index * 0.8) * currentSize * 0.08;
     
-    // Layer 1: Very large soft bloom
-    if (depthFactor > 0.25) {
-      final bloomRadius = currentSize * 6.0;
-      final bloomOpacity = opacity * 0.25 * blinkFactor;
+    // === BLOOM / GLOW LAYERS ===
+    
+    // Layer 1: Large warm ambient glow
+    if (depthFactor > 0.2) {
+      final bloomRadius = currentSize * 5.0;
       final bloomPaint = Paint()
-        ..color = baseColor.withOpacity(bloomOpacity)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
+        ..color = baseColor.withOpacity(opacity * 0.2 * pulseFactor)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
       canvas.drawCircle(pos, bloomRadius, bloomPaint);
     }
     
-    // Layer 2: Medium bloom with color
-    if (depthFactor > 0.3) {
-      final midBloomRadius = currentSize * 3.5;
-      final midBloomPaint = Paint()
+    // Layer 2: Medium orange glow
+    if (depthFactor > 0.25) {
+      final midGlowRadius = currentSize * 3.0;
+      final midGlowPaint = Paint()
         ..shader = RadialGradient(
           colors: [
-            Colors.white.withOpacity(opacity * 0.4 * blinkFactor),
-            baseColor.withOpacity(opacity * 0.3 * blinkFactor),
+            coreColor.withOpacity(opacity * 0.35),
+            baseColor.withOpacity(opacity * 0.25),
             Colors.transparent,
           ],
-          stops: const [0.0, 0.4, 1.0],
-        ).createShader(Rect.fromCircle(center: pos, radius: midBloomRadius))
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
-      canvas.drawCircle(pos, midBloomRadius, midBloomPaint);
+          stops: const [0.0, 0.5, 1.0],
+        ).createShader(Rect.fromCircle(center: pos, radius: midGlowRadius))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+      canvas.drawCircle(pos, midGlowRadius, midGlowPaint);
     }
     
-    // Layer 3: Inner glow
-    final innerGlowRadius = currentSize * 2.0;
+    // Layer 3: Inner warm glow - slightly offset for organic feel
+    final innerGlowRadius = currentSize * 1.8;
     final innerGlowPaint = Paint()
       ..shader = RadialGradient(
         colors: [
-          Colors.white.withOpacity(opacity * 0.7 * blinkFactor),
-          baseColor.withOpacity(opacity * 0.5 * blinkFactor),
+          coreColor.withOpacity(opacity * 0.6),
+          baseColor.withOpacity(opacity * 0.4),
           Colors.transparent,
         ],
-        stops: const [0.0, 0.5, 1.0],
-      ).createShader(Rect.fromCircle(center: pos, radius: innerGlowRadius))
+        stops: const [0.0, 0.6, 1.0],
+      ).createShader(Rect.fromCircle(
+        center: Offset(pos.dx + wobble1 * 0.3, pos.dy + wobble2 * 0.3),
+        radius: innerGlowRadius,
+      ))
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
-    canvas.drawCircle(pos, innerGlowRadius, innerGlowPaint);
+    canvas.drawCircle(
+      Offset(pos.dx + wobble1 * 0.3, pos.dy + wobble2 * 0.3),
+      innerGlowRadius,
+      innerGlowPaint,
+    );
     
-    // Layer 4: Bright core
-    final coreColor = Color.lerp(baseColor, Colors.white, 0.8)!;
-    final corePaint = Paint()
+    // === ORGANIC FIRE CORE - Multiple wobbly circles ===
+    
+    // Main body - slightly squished/stretched
+    final bodyWidth = currentSize * (1.0 + wobble1 * 0.1);
+    final bodyHeight = currentSize * (1.0 - wobble2 * 0.08);
+    final bodyPaint = Paint()
       ..shader = RadialGradient(
         colors: [
-          Colors.white.withOpacity(opacity * blinkFactor),
-          coreColor.withOpacity(opacity * 0.9 * blinkFactor),
+          hotWhite.withOpacity(opacity * 0.9),
+          coreColor.withOpacity(opacity * 0.8),
+          baseColor.withOpacity(opacity * 0.6),
         ],
-        stops: const [0.0, 1.0],
-      ).createShader(Rect.fromCircle(center: pos, radius: currentSize));
-    canvas.drawCircle(pos, currentSize, corePaint);
+        stops: const [0.0, 0.4, 1.0],
+      ).createShader(Rect.fromCenter(center: pos, width: bodyWidth * 2, height: bodyHeight * 2));
+    canvas.drawOval(
+      Rect.fromCenter(center: pos, width: bodyWidth * 2, height: bodyHeight * 2),
+      bodyPaint,
+    );
     
-    // Layer 5: Hot white center - the "star point"
-    if (depthFactor > 0.3) {
-      final hotCenterPaint = Paint()
-        ..color = Colors.white.withOpacity(opacity * 0.98 * blinkFactor)
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(pos, currentSize * 0.55, hotCenterPaint);
+    // Secondary lobe - offset for organic shape
+    if (depthFactor > 0.35) {
+      final lobe1Pos = Offset(pos.dx + wobble1, pos.dy + wobble2 * 0.5);
+      final lobe1Size = currentSize * 0.65;
+      final lobe1Paint = Paint()
+        ..color = coreColor.withOpacity(opacity * 0.7)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1);
+      canvas.drawCircle(lobe1Pos, lobe1Size, lobe1Paint);
     }
     
-    // Extra intense flash on some stars
-    if (particle.sparkle > 0.85 && blinkFactor > 0.8 && depthFactor > 0.5) {
-      // Bright starburst flash
-      final flashPaint = Paint()
-        ..color = Colors.white
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
-      canvas.drawCircle(pos, currentSize * 0.8, flashPaint);
+    // Third lobe - different offset
+    if (depthFactor > 0.45) {
+      final lobe2Pos = Offset(pos.dx - wobble2 * 0.7, pos.dy + wobble3);
+      final lobe2Size = currentSize * 0.5;
+      final lobe2Paint = Paint()
+        ..color = coreColor.withOpacity(opacity * 0.6)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1);
+      canvas.drawCircle(lobe2Pos, lobe2Size, lobe2Paint);
+    }
+    
+    // Hot white center - the brightest point
+    if (depthFactor > 0.3) {
+      final hotSize = currentSize * 0.4 * flickerFactor;
+      final hotPaint = Paint()
+        ..color = hotWhite.withOpacity(opacity * 0.95)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(pos, hotSize, hotPaint);
+    }
+    
+    // Occasional bright flare
+    if (particle.sparkle > 0.88 && flickerFactor > 0.9 && depthFactor > 0.5) {
+      final flarePaint = Paint()
+        ..color = hotWhite.withOpacity(0.9)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+      canvas.drawCircle(pos, currentSize * 0.7, flarePaint);
     }
   }
 
