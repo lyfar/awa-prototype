@@ -417,66 +417,102 @@ class _AwaSphereParticles extends CustomPainter {
     final depthFactor = (particle.z + 1) / 2; // 0 to 1, back to front
     final pos = center + Offset(particle.x, particle.y);
     
-    // Position-based gradient: warm (left/top) to cool (right/bottom)
+    // Blink effect - each particle pulses
+    final blinkPhase = math.sin(sparklePhase * 2.0 + particle.index * 0.15);
+    final blinkFactor = 0.5 + blinkPhase * 0.5; // 0.0 to 1.0
+    
+    // Color gradient across sphere
     final normalizedX = (particle.x / radius + 1) / 2;
     final normalizedY = (particle.y / radius + 1) / 2;
-    final gradientFactor = (normalizedX * 0.6 + normalizedY * 0.4);
+    final gradientFactor = (normalizedX * 0.5 + normalizedY * 0.5);
     
-    // Bright warm coral → soft cool lavender
-    const warmColor = Color(0xFFFFCBB8);  // Bright warm peach
-    const coolColor = Color(0xFFD0C8E8);  // Soft lavender
-    final baseColor = Color.lerp(warmColor, coolColor, gradientFactor)!;
+    // Gradient colors matching backdrop
+    const warmColor = Color(0xFFFEC0A2);  // Warm peach
+    const midColor = Color(0xFFEFABBF);   // Pink
+    const coolColor = Color(0xFFB89FC1);  // Lavender
     
-    // Strong brightness - particles should glow
-    final brightness = 0.7 + depthFactor * 0.3;
-    final opacity = math.min(1.0, brightness);
-    final sizeMultiplier = (0.65 + depthFactor * 0.35) * (1 + particle.waveOffset * 0.08);
-    final currentSize = particleSize * sizeMultiplier;
-    
-    // Glow effect around particles (light emission)
-    if (depthFactor > 0.3) {
-      final glowRadius = currentSize * 2.5;
-      final glowColor = Color.lerp(baseColor, Colors.white, 0.3)!;
-      final glowPaint = Paint()
-        ..shader = RadialGradient(
-          colors: [
-            glowColor.withOpacity(0.4 * depthFactor),
-            glowColor.withOpacity(0.15 * depthFactor),
-            Colors.transparent,
-          ],
-          stops: const [0.0, 0.5, 1.0],
-        ).createShader(Rect.fromCircle(center: pos, radius: glowRadius))
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
-      canvas.drawCircle(pos, glowRadius, glowPaint);
+    Color baseColor;
+    if (gradientFactor < 0.5) {
+      baseColor = Color.lerp(coolColor, midColor, gradientFactor * 2)!;
+    } else {
+      baseColor = Color.lerp(midColor, warmColor, (gradientFactor - 0.5) * 2)!;
     }
     
-    // Bright particle core - glowing light
-    final coreColor = Color.lerp(baseColor, Colors.white, 0.5 + depthFactor * 0.3)!;
+    // Brightness with blink
+    final brightness = (0.6 + depthFactor * 0.4) * (0.7 + blinkFactor * 0.3);
+    final opacity = math.min(1.0, brightness);
+    final sizeMultiplier = (0.7 + depthFactor * 0.3) * (1 + particle.waveOffset * 0.06);
+    final currentSize = particleSize * sizeMultiplier * (0.9 + blinkFactor * 0.1);
+    
+    // === BLOOM EFFECT - Multiple blur layers ===
+    
+    // Layer 1: Very large soft bloom (like real light scatter)
+    if (depthFactor > 0.25) {
+      final bloomRadius = currentSize * 5.0;
+      final bloomOpacity = opacity * 0.2 * blinkFactor;
+      final bloomPaint = Paint()
+        ..color = baseColor.withOpacity(bloomOpacity)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
+      canvas.drawCircle(pos, bloomRadius, bloomPaint);
+    }
+    
+    // Layer 2: Medium bloom
+    if (depthFactor > 0.3) {
+      final midBloomRadius = currentSize * 3.0;
+      final midBloomPaint = Paint()
+        ..shader = RadialGradient(
+          colors: [
+            Colors.white.withOpacity(opacity * 0.3 * blinkFactor),
+            baseColor.withOpacity(opacity * 0.25 * blinkFactor),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.4, 1.0],
+        ).createShader(Rect.fromCircle(center: pos, radius: midBloomRadius))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+      canvas.drawCircle(pos, midBloomRadius, midBloomPaint);
+    }
+    
+    // Layer 3: Inner glow
+    final innerGlowRadius = currentSize * 1.8;
+    final innerGlowPaint = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          Colors.white.withOpacity(opacity * 0.6 * blinkFactor),
+          baseColor.withOpacity(opacity * 0.4 * blinkFactor),
+          Colors.transparent,
+        ],
+        stops: const [0.0, 0.5, 1.0],
+      ).createShader(Rect.fromCircle(center: pos, radius: innerGlowRadius))
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+    canvas.drawCircle(pos, innerGlowRadius, innerGlowPaint);
+    
+    // Layer 4: Bright core
+    final coreColor = Color.lerp(baseColor, Colors.white, 0.7)!;
     final corePaint = Paint()
       ..shader = RadialGradient(
         colors: [
-          Colors.white.withOpacity(opacity),
-          coreColor.withOpacity(opacity),
-          baseColor.withOpacity(opacity * 0.9),
+          Colors.white.withOpacity(opacity * blinkFactor),
+          coreColor.withOpacity(opacity * 0.9 * blinkFactor),
         ],
-        stops: const [0.0, 0.4, 1.0],
+        stops: const [0.0, 1.0],
       ).createShader(Rect.fromCircle(center: pos, radius: currentSize));
     canvas.drawCircle(pos, currentSize, corePaint);
     
-    // Bright white center highlight
-    if (depthFactor > 0.4) {
-      final highlightPaint = Paint()
-        ..color = Colors.white.withOpacity(opacity * 0.95)
+    // Layer 5: Hot white center
+    if (depthFactor > 0.35) {
+      final hotCenterPaint = Paint()
+        ..color = Colors.white.withOpacity(opacity * 0.95 * blinkFactor)
         ..style = PaintingStyle.fill;
-      canvas.drawCircle(pos, currentSize * 0.4, highlightPaint);
+      canvas.drawCircle(pos, currentSize * 0.5, hotCenterPaint);
     }
     
-    // Sparkle flash effect
-    if (particle.sparkle > 0.7 && depthFactor > 0.5) {
+    // Intense sparkle flash on some particles
+    if (particle.sparkle > 0.8 && blinkFactor > 0.7 && depthFactor > 0.5) {
+      // Extra bright flash
       final flashPaint = Paint()
-        ..color = Colors.white.withOpacity(particle.sparkle)
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(pos, currentSize * 0.25, flashPaint);
+        ..color = Colors.white.withOpacity(0.95)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+      canvas.drawCircle(pos, currentSize * 0.6, flashPaint);
     }
   }
 
