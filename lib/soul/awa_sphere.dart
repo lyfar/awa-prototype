@@ -1,30 +1,32 @@
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'awa_soul_settings.dart';
 
 /// Standard sphere configuration for consistent sizing across the app
 class AwaSphereConfig {
   /// Standard height for lobby screens (larger now)
   static const double lobbyHeight = 340;
-  
+
   /// Half-screen height ratio for other screens (60% now)
   static const double halfScreenRatio = 0.6;
-  
+
   /// Primary coral/peach color
   static const Color primaryColor = Color(0xFFFCB29C);
-  
-  /// Secondary soft pink color  
+
+  /// Secondary soft pink color
   static const Color secondaryColor = Color(0xFFE8D5D0);
-  
+
   /// Accent highlight color
   static const Color accentColor = Color(0xFFFFD4C4);
-  
+
   /// Standard particle count (dense coverage)
   static const int particleCount = 450;
-  
+
   /// Standard particle size (smaller for denser packing)
   static const double particleSize = 3.0;
-  
+
   /// Get height for half-screen mode
   static double getHalfScreenHeight(BuildContext context) {
     return MediaQuery.of(context).size.height * halfScreenRatio;
@@ -32,6 +34,7 @@ class AwaSphereConfig {
 }
 
 /// AwaSphere - Interactive light sphere with glowing particles
+/// Implements proper light rendering: emissive colors, additive blending, bloom
 /// Supports drag to rotate, pinch to zoom
 class AwaSphere extends StatefulWidget {
   final double? width;
@@ -45,6 +48,31 @@ class AwaSphere extends StatefulWidget {
   final int particleCount;
   final double energy;
 
+  // Use global settings from AwaSoulSettings singleton
+  final bool useGlobalSettings;
+
+  // 2D Backdrop settings
+  final int backdropDotCount;
+  final double backdropDotSize;
+  final double backdropOpacity;
+  final Color? backdropGradientStart;
+  final Color? backdropGradientMid;
+  final Color? backdropGradientEnd;
+
+  // Animation speed multipliers
+  final double flickerSpeed;
+  final double pulseSpeed;
+  final double driftSpeed;
+  final double wobbleSpeed;
+
+  // Light/Emissive settings
+  final double emissiveIntensity;
+  final double coreIntensity;
+  final double glowRadius;
+  final double glowSoftness;
+  final bool additiveBlending;
+  final double haloOpacity;
+
   const AwaSphere({
     super.key,
     this.width,
@@ -57,13 +85,34 @@ class AwaSphere extends StatefulWidget {
     this.particleSize = AwaSphereConfig.particleSize,
     this.particleCount = AwaSphereConfig.particleCount,
     this.energy = 0.0,
+    this.useGlobalSettings = true,
+    // 2D Backdrop defaults
+    this.backdropDotCount = 380,
+    this.backdropDotSize = 5.0,
+    this.backdropOpacity = 0.75,
+    this.backdropGradientStart,
+    this.backdropGradientMid,
+    this.backdropGradientEnd,
+    // Animation speed defaults
+    this.flickerSpeed = 1.0,
+    this.pulseSpeed = 1.0,
+    this.driftSpeed = 1.0,
+    this.wobbleSpeed = 1.0,
+    // Light rendering defaults
+    this.emissiveIntensity = 1.5,
+    this.coreIntensity = 2.0,
+    this.glowRadius = 3.0,
+    this.glowSoftness = 8.0,
+    this.additiveBlending = true,
+    this.haloOpacity = 0.4,
   });
 
   @override
   State<AwaSphere> createState() => _AwaSphereState();
 }
 
-class _AwaSphereState extends State<AwaSphere> with SingleTickerProviderStateMixin {
+class _AwaSphereState extends State<AwaSphere>
+    with SingleTickerProviderStateMixin {
   late Ticker _ticker;
   double _time = 0;
   double _rotationX = 0;
@@ -85,17 +134,17 @@ class _AwaSphereState extends State<AwaSphere> with SingleTickerProviderStateMix
     super.initState();
     _smoothEnergy = widget.energy;
     _targetEnergy = widget.energy;
-    
+
     _ticker = createTicker(_onTick);
     if (widget.animate) {
       _ticker.start();
     }
   }
-  
+
   void _onTick(Duration elapsed) {
     setState(() {
       _time += 0.016;
-      
+
       // Smooth energy transition
       if (_smoothEnergy != _targetEnergy) {
         final diff = _targetEnergy - _smoothEnergy;
@@ -104,7 +153,7 @@ class _AwaSphereState extends State<AwaSphere> with SingleTickerProviderStateMix
           _smoothEnergy = _targetEnergy;
         }
       }
-      
+
       // Smooth scale transition
       if (_scale != _targetScale) {
         final diff = _targetScale - _scale;
@@ -115,15 +164,15 @@ class _AwaSphereState extends State<AwaSphere> with SingleTickerProviderStateMix
       }
     });
   }
-  
+
   @override
   void didUpdateWidget(covariant AwaSphere oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     if (widget.energy != oldWidget.energy) {
       _targetEnergy = widget.energy;
     }
-    
+
     if (widget.animate && !_ticker.isActive) {
       _ticker.start();
     } else if (!widget.animate && _ticker.isActive) {
@@ -144,7 +193,7 @@ class _AwaSphereState extends State<AwaSphere> with SingleTickerProviderStateMix
 
   void _handlePanUpdate(DragUpdateDetails details) {
     if (!widget.interactive || _lastPanPosition == null) return;
-    
+
     final delta = details.localPosition - _lastPanPosition!;
     setState(() {
       _rotationY += delta.dx * 0.01;
@@ -165,7 +214,7 @@ class _AwaSphereState extends State<AwaSphere> with SingleTickerProviderStateMix
 
   void _handleScaleUpdate(ScaleUpdateDetails details) {
     if (!widget.interactive) return;
-    
+
     if (details.pointerCount == 2) {
       // Pinch to zoom
       setState(() {
@@ -190,27 +239,92 @@ class _AwaSphereState extends State<AwaSphere> with SingleTickerProviderStateMix
     final wavePhase = _time * _waveSpeed * 2 * math.pi;
     final sparklePhase = _time * _sparkleSpeed * 2 * math.pi;
 
+    // Use global settings or widget props
+    final settings = widget.useGlobalSettings ? AwaSoulSettings() : null;
+
     return GestureDetector(
       onScaleStart: _handleScaleStart,
       onScaleUpdate: _handleScaleUpdate,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final width = widget.width ?? constraints.maxWidth;
+
+          final painter = _AwaSphereParticles(
+            rotationX: _rotationX,
+            rotationY: _rotationY + autoRotation,
+            scale: _scale * breathScale,
+            wavePhase: wavePhase,
+            sparklePhase: sparklePhase,
+            energy: _smoothEnergy,
+            primaryColor: widget.primaryColor,
+            secondaryColor: widget.secondaryColor,
+            accentColor:
+                widget.accentColor ?? widget.primaryColor.withOpacity(0.8),
+            // Use global settings if enabled
+            particleSize: settings?.particleSize ?? widget.particleSize,
+            particleCount: settings?.particleCount ?? widget.particleCount,
+            backdropDotCount:
+                settings?.backdropDotCount ?? widget.backdropDotCount,
+            backdropDotSize:
+                settings?.backdropDotSize ?? widget.backdropDotSize,
+            backdropOpacity:
+                settings?.backdropOpacity ?? widget.backdropOpacity,
+            backdropGradientStart:
+                settings?.gradientStart ?? widget.backdropGradientStart,
+            backdropGradientMid:
+                settings?.gradientMid ?? widget.backdropGradientMid,
+            backdropGradientEnd:
+                settings?.gradientEnd ?? widget.backdropGradientEnd,
+            flickerSpeed: settings?.flickerSpeed ?? widget.flickerSpeed,
+            pulseSpeed: settings?.pulseSpeed ?? widget.pulseSpeed,
+            driftSpeed: settings?.driftSpeed ?? widget.driftSpeed,
+            wobbleSpeed: settings?.wobbleSpeed ?? widget.wobbleSpeed,
+            // Light rendering
+            emissiveIntensity:
+                settings?.emissiveIntensity ?? widget.emissiveIntensity,
+            coreIntensity: settings?.coreIntensity ?? widget.coreIntensity,
+            glowRadius: settings?.glowRadius ?? widget.glowRadius,
+            glowSoftness: settings?.glowSoftness ?? widget.glowSoftness,
+            additiveBlending:
+                settings?.additiveBlending ?? widget.additiveBlending,
+            haloOpacity: settings?.haloOpacity ?? widget.haloOpacity,
+          );
+
+          // Apply bloom effect if enabled
+          final enableBloom = settings?.enableBloom ?? false;
+          final bloomIntensity = settings?.bloomIntensity ?? 0.6;
+          final bloomRadius = settings?.bloomRadius ?? 12.0;
+
+          if (enableBloom && bloomIntensity > 0) {
+            return Stack(
+              children: [
+                // Base layer
+                CustomPaint(size: Size(width, widget.height), painter: painter),
+                // Bloom layer
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: ImageFiltered(
+                      imageFilter: ImageFilter.blur(
+                        sigmaX: bloomRadius * bloomIntensity,
+                        sigmaY: bloomRadius * bloomIntensity,
+                      ),
+                      child: Opacity(
+                        opacity: 0.4 * bloomIntensity,
+                        child: CustomPaint(
+                          size: Size(width, widget.height),
+                          painter: painter,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
           return CustomPaint(
             size: Size(width, widget.height),
-            painter: _AwaSphereParticles(
-              rotationX: _rotationX,
-              rotationY: _rotationY + autoRotation,
-              scale: _scale * breathScale,
-              wavePhase: wavePhase,
-              sparklePhase: sparklePhase,
-              energy: _smoothEnergy,
-              primaryColor: widget.primaryColor,
-              secondaryColor: widget.secondaryColor,
-              accentColor: widget.accentColor ?? widget.primaryColor.withOpacity(0.8),
-              particleSize: widget.particleSize,
-              particleCount: widget.particleCount,
-            ),
+            painter: painter,
           );
         },
       ),
@@ -230,6 +344,25 @@ class _AwaSphereParticles extends CustomPainter {
   final Color accentColor;
   final double particleSize;
   final int particleCount;
+  // 2D Backdrop
+  final int backdropDotCount;
+  final double backdropDotSize;
+  final double backdropOpacity;
+  final Color? backdropGradientStart;
+  final Color? backdropGradientMid;
+  final Color? backdropGradientEnd;
+  // Animation speeds
+  final double flickerSpeed;
+  final double pulseSpeed;
+  final double driftSpeed;
+  final double wobbleSpeed;
+  // Light rendering
+  final double emissiveIntensity;
+  final double coreIntensity;
+  final double glowRadius;
+  final double glowSoftness;
+  final bool additiveBlending;
+  final double haloOpacity;
 
   _AwaSphereParticles({
     required this.rotationX,
@@ -243,37 +376,53 @@ class _AwaSphereParticles extends CustomPainter {
     required this.accentColor,
     required this.particleSize,
     required this.particleCount,
+    required this.backdropDotCount,
+    required this.backdropDotSize,
+    required this.backdropOpacity,
+    this.backdropGradientStart,
+    this.backdropGradientMid,
+    this.backdropGradientEnd,
+    required this.flickerSpeed,
+    required this.pulseSpeed,
+    required this.driftSpeed,
+    required this.wobbleSpeed,
+    required this.emissiveIntensity,
+    required this.coreIntensity,
+    required this.glowRadius,
+    required this.glowSoftness,
+    required this.additiveBlending,
+    required this.haloOpacity,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final baseRadius = (math.min(size.width, size.height) / 2) * 0.6 * scale;
-    
+
     // Golden angle for phyllotaxis
     const goldenAngle = 2.39996322972865332;
-    
+
     final floatIntensity = 1.5 + (energy * 1.0);
     final waveIntensity = 0.06 + (energy * 0.03);
-    
+
     // Draw subtle dark sphere backdrop
     _drawDarkSphere(canvas, center, baseRadius);
-    
+
     // Generate and sort particles by z-depth
     final particles = <_Particle>[];
-    
+
     for (int i = 0; i < particleCount; i++) {
       final t = i / particleCount;
       final inclination = math.acos(1 - 2 * t);
       final azimuth = goldenAngle * i;
-      
+
       final particleWaveOffset = math.sin(wavePhase + i * 0.1) * waveIntensity;
       final particleRadius = baseRadius * (1 + particleWaveOffset);
-      
+
       double x = math.sin(inclination) * math.cos(azimuth);
       double y = math.sin(inclination) * math.sin(azimuth);
       double z = math.cos(inclination);
-      
+
       // Apply rotation around Y axis
       final cosY = math.cos(rotationY);
       final sinY = math.sin(rotationY);
@@ -281,7 +430,7 @@ class _AwaSphereParticles extends CustomPainter {
       final newZ = x * sinY + z * cosY;
       x = newX;
       z = newZ;
-      
+
       // Apply rotation around X axis
       final cosX = math.cos(rotationX);
       final sinX = math.sin(rotationX);
@@ -289,32 +438,34 @@ class _AwaSphereParticles extends CustomPainter {
       final newZ2 = y * sinX + z * cosX;
       y = newY;
       z = newZ2;
-      
+
       // Subtle floating movement
       final floatX = math.sin(wavePhase * 1.1 + i * 0.15) * floatIntensity;
       final floatY = math.cos(wavePhase * 0.9 + i * 0.19) * floatIntensity;
-      
+
       // Sparkle/twinkle factor
       final sparkle = (math.sin(sparklePhase * 2 + i * 0.35) + 1) / 2;
-      
-      particles.add(_Particle(
-        x: x * particleRadius + floatX,
-        y: y * particleRadius + floatY,
-        z: z,
-        index: i,
-        sparkle: sparkle,
-        waveOffset: particleWaveOffset,
-      ));
+
+      particles.add(
+        _Particle(
+          x: x * particleRadius + floatX,
+          y: y * particleRadius + floatY,
+          z: z,
+          index: i,
+          sparkle: sparkle,
+          waveOffset: particleWaveOffset,
+        ),
+      );
     }
-    
+
     // Sort by z for proper depth rendering
     particles.sort((a, b) => a.z.compareTo(b.z));
-    
+
     // Draw particles as light points
     for (final particle in particles) {
       _drawLightParticle(canvas, center, particle, baseRadius);
     }
-    
+
     // Draw center glow
     _drawCenterGlow(canvas, center, baseRadius);
   }
@@ -323,275 +474,342 @@ class _AwaSphereParticles extends CustomPainter {
     // 2D Phyllotaxis spiral backdrop with blurred gradient dots
     const goldenAngle = 2.39996322972865332;
     final backdropRadius = radius * 1.08;
-    final dotCount = 380;
-    
-    // Warm fire gradient colors
-    const gradientColors = [
-      Color(0xFFE8C8B8), // 10% - soft warm beige (center)
-      Color(0xFFF5D0B0), // 30% - warm cream
-      Color(0xFFFFD4A8), // 50% - golden peach
-      Color(0xFFFFBF90), // 65% - warm orange
-      Color(0xFFE8A090), // 80% - coral rose
-      Color(0xFFD8A0A8), // 95% - dusty rose (edge)
-    ];
-    const gradientStops = [0.10, 0.30, 0.50, 0.65, 0.80, 0.95];
-    
+
+    // Use configurable gradient colors or defaults
+    final gradStart = backdropGradientStart ?? const Color(0xFFE8C8B8);
+    final gradMid = backdropGradientMid ?? const Color(0xFFFFD4A8);
+    final gradEnd = backdropGradientEnd ?? const Color(0xFFD8A0A8);
+
     // Draw backdrop spiral dots with gradient and blink
-    for (int i = 0; i < dotCount; i++) {
-      final t = i / dotCount;
+    for (int i = 0; i < backdropDotCount; i++) {
+      final t = i / backdropDotCount;
       final r = backdropRadius * math.sqrt(t);
       final theta = goldenAngle * i;
-      
+
       final x = center.dx + r * math.cos(theta);
       final y = center.dy + r * math.sin(theta);
-      
+
       // Distance ratio for gradient
       final distRatio = r / backdropRadius;
-      
-      // Get color from gradient based on distance
-      Color dotColor = gradientColors.last;
-      for (int j = 0; j < gradientStops.length - 1; j++) {
-        if (distRatio >= gradientStops[j] && distRatio <= gradientStops[j + 1]) {
-          final localT = (distRatio - gradientStops[j]) / (gradientStops[j + 1] - gradientStops[j]);
-          dotColor = Color.lerp(gradientColors[j], gradientColors[j + 1], localT)!;
-          break;
-        } else if (distRatio < gradientStops[0]) {
-          dotColor = gradientColors[0];
-          break;
-        }
+
+      // Interpolate through 3 configurable colors
+      Color dotColor;
+      if (distRatio < 0.5) {
+        dotColor = Color.lerp(gradStart, gradMid, distRatio * 2)!;
+      } else {
+        dotColor = Color.lerp(gradMid, gradEnd, (distRatio - 0.5) * 2)!;
       }
-      
-      // Gentle blink - slower and subtler
-      final blinkPhase = math.sin(sparklePhase * 0.6 + i * 0.06);
-      final blinkFactor = 0.75 + blinkPhase * 0.25; // 0.5 to 1.0
-      
-      // Dot size with slight variation
+
+      // Gentle blink - speed controlled by pulseSpeed
+      final blinkPhase = math.sin(sparklePhase * 0.6 * pulseSpeed + i * 0.06);
+      final blinkFactor = 0.75 + blinkPhase * 0.25;
+
+      // Dot size with slight variation - use configurable backdropDotSize
       final sizeVariation = math.sin(i * 0.5) * 0.3;
-      final dotSize = (5.0 + (1 - distRatio) * 4.0) * (1 + sizeVariation * 0.2);
-      
-      // Opacity with fade at edges and blink
+      final dotSize =
+          (backdropDotSize + (1 - distRatio) * backdropDotSize * 0.8) *
+          (1 + sizeVariation * 0.2);
+
+      // Opacity with fade at edges and blink - use configurable backdropOpacity
       double opacity;
       if (distRatio < 0.2) {
-        opacity = distRatio * 4; // Fade in from center
+        opacity = distRatio * 4;
       } else if (distRatio > 0.9) {
-        opacity = (1 - distRatio) * 8; // Fade out at edge
+        opacity = (1 - distRatio) * 8;
       } else {
-        opacity = 0.8;
+        opacity = backdropOpacity;
       }
       opacity *= blinkFactor;
-      
+
       // Large soft blur glow
-      final glowPaint = Paint()
-        ..color = dotColor.withOpacity(opacity * 0.5)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+      final glowPaint =
+          Paint()
+            ..color = dotColor.withOpacity(opacity * 0.5)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
       canvas.drawCircle(Offset(x, y), dotSize * 2.0, glowPaint);
-      
+
       // Medium glow layer
-      final midGlowPaint = Paint()
-        ..color = dotColor.withOpacity(opacity * 0.6)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+      final midGlowPaint =
+          Paint()
+            ..color = dotColor.withOpacity(opacity * 0.6)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
       canvas.drawCircle(Offset(x, y), dotSize * 1.3, midGlowPaint);
-      
+
       // Core dot
-      final dotPaint = Paint()
-        ..color = Color.lerp(dotColor, Colors.white, 0.3)!.withOpacity(opacity * 0.8)
-        ..style = PaintingStyle.fill;
+      final dotPaint =
+          Paint()
+            ..color = Color.lerp(
+              dotColor,
+              Colors.white,
+              0.3,
+            )!.withOpacity(opacity * 0.8)
+            ..style = PaintingStyle.fill;
       canvas.drawCircle(Offset(x, y), dotSize * 0.7, dotPaint);
     }
-    
+
     // Soft center glow
-    final centerGlow = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          const Color(0xFFFFF5F0).withOpacity(0.3),
-          const Color(0xFFFAE8E0).withOpacity(0.15),
-          Colors.transparent,
-        ],
-        stops: const [0.0, 0.5, 1.0],
-      ).createShader(Rect.fromCircle(center: center, radius: radius * 0.35))
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 25);
+    final centerGlow =
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              const Color(0xFFFFF5F0).withOpacity(0.3),
+              const Color(0xFFFAE8E0).withOpacity(0.15),
+              Colors.transparent,
+            ],
+            stops: const [0.0, 0.5, 1.0],
+          ).createShader(Rect.fromCircle(center: center, radius: radius * 0.35))
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 25);
     canvas.drawCircle(center, radius * 0.3, centerGlow);
   }
 
-  void _drawLightParticle(Canvas canvas, Offset center, _Particle particle, double radius) {
+  void _drawLightParticle(
+    Canvas canvas,
+    Offset center,
+    _Particle particle,
+    double radius,
+  ) {
     final depthFactor = (particle.z + 1) / 2; // 0 to 1, back to front
-    
-    // === GENTLE DRIFT - very slight position movement ===
-    final driftX = math.sin(sparklePhase * 0.3 + particle.index * 0.5) * 1.5;
-    final driftY = math.cos(sparklePhase * 0.25 + particle.index * 0.7) * 1.2;
+
+    // === GENTLE DRIFT ===
+    final driftX =
+        math.sin(sparklePhase * 0.3 * driftSpeed + particle.index * 0.5) * 1.5;
+    final driftY =
+        math.cos(sparklePhase * 0.25 * driftSpeed + particle.index * 0.7) * 1.2;
     final pos = center + Offset(particle.x + driftX, particle.y + driftY);
-    
+
     // === ORGANIC SIZE VARIATION ===
-    // Each particle has unique base size (0.5x to 2x)
     final sizeVariation = 0.5 + (math.sin(particle.index * 1.7) + 1) * 0.75;
-    
-    // Gentle flicker - slower, more subtle
-    final flicker1 = math.sin(sparklePhase * 1.8 + particle.index * 0.4);
-    final flicker2 = math.cos(sparklePhase * 1.4 + particle.index * 0.7);
+
+    // Flicker and pulse
+    final flicker1 = math.sin(
+      sparklePhase * 1.8 * flickerSpeed + particle.index * 0.4,
+    );
+    final flicker2 = math.cos(
+      sparklePhase * 1.4 * flickerSpeed + particle.index * 0.7,
+    );
     final flickerFactor = 0.85 + flicker1 * 0.08 + flicker2 * 0.07;
-    
-    // Slow pulse (breathing)
-    final pulse = math.sin(sparklePhase * 0.8 + particle.index * 0.15);
+    final pulse = math.sin(
+      sparklePhase * 0.8 * pulseSpeed + particle.index * 0.15,
+    );
     final pulseFactor = 0.9 + pulse * 0.1;
-    
-    // === WARM FIRE COLORS ===
-    // Gradient from white-hot center → orange → deep amber
+
+    // === EMISSIVE COLORS (HDR-like) ===
     final normalizedX = (particle.x / radius + 1) / 2;
     final normalizedY = (particle.y / radius + 1) / 2;
     final gradientFactor = (normalizedX * 0.4 + normalizedY * 0.6);
-    
-    // Fire color palette - warm and organic
-    const hotWhite = Color(0xFFFFF8F0);     // White hot
-    const brightYellow = Color(0xFFFFE4B5); // Moccasin/warm yellow
-    const warmOrange = Color(0xFFFFB07C);   // Warm orange
-    const deepAmber = Color(0xFFE8967C);    // Deep amber/coral
-    const softRose = Color(0xFFDDA0A0);     // Soft rose for cooler parts
-    
+
+    // Fire color palette
+    const hotWhite = Color(0xFFFFFAF5);
+    const brightYellow = Color(0xFFFFE8C0);
+    const warmOrange = Color(0xFFFFB880);
+    const deepAmber = Color(0xFFE89878);
+    const softRose = Color(0xFFDDA0A0);
+
     Color baseColor;
     Color coreColor;
     if (gradientFactor < 0.3) {
       baseColor = Color.lerp(softRose, deepAmber, gradientFactor / 0.3)!;
       coreColor = Color.lerp(warmOrange, brightYellow, gradientFactor / 0.3)!;
     } else if (gradientFactor < 0.6) {
-      baseColor = Color.lerp(deepAmber, warmOrange, (gradientFactor - 0.3) / 0.3)!;
-      coreColor = Color.lerp(brightYellow, hotWhite, (gradientFactor - 0.3) / 0.3)!;
+      baseColor =
+          Color.lerp(deepAmber, warmOrange, (gradientFactor - 0.3) / 0.3)!;
+      coreColor =
+          Color.lerp(brightYellow, hotWhite, (gradientFactor - 0.3) / 0.3)!;
     } else {
-      baseColor = Color.lerp(warmOrange, brightYellow, (gradientFactor - 0.6) / 0.4)!;
+      baseColor =
+          Color.lerp(warmOrange, brightYellow, (gradientFactor - 0.6) / 0.4)!;
       coreColor = hotWhite;
     }
-    
-    // Brightness combines depth, flicker, and pulse
-    final brightness = (0.5 + depthFactor * 0.5) * flickerFactor * pulseFactor;
+
+    // Apply emissive intensity (HDR simulation)
+    final emissiveMult = emissiveIntensity;
+
+    // Apply additive blending simulation (lighten colors)
+    if (additiveBlending) {
+      baseColor = _applyAdditive(baseColor, emissiveMult * 0.3);
+      coreColor = _applyAdditive(coreColor, emissiveMult * 0.5);
+    }
+
+    // Brightness combines depth, flicker, pulse, and emissive
+    final brightness =
+        (0.5 + depthFactor * 0.5) * flickerFactor * pulseFactor * emissiveMult;
     final opacity = math.min(1.0, brightness);
-    
-    // Size with all variations
-    final sizeMultiplier = sizeVariation * (0.6 + depthFactor * 0.4) * flickerFactor;
+
+    // Size with variations
+    final sizeMultiplier =
+        sizeVariation * (0.6 + depthFactor * 0.4) * flickerFactor;
     final currentSize = particleSize * sizeMultiplier;
-    
-    // === ORGANIC SHAPE - Gentle wobbly edges ===
-    // Create irregular shape using multiple offset circles - slower movement
-    final wobble1 = math.sin(sparklePhase * 1.2 + particle.index) * currentSize * 0.12;
-    final wobble2 = math.cos(sparklePhase * 1.0 + particle.index * 1.3) * currentSize * 0.1;
-    final wobble3 = math.sin(sparklePhase * 1.5 + particle.index * 0.8) * currentSize * 0.08;
-    
-    // === BLOOM / GLOW LAYERS ===
-    
-    // Layer 1: Large warm ambient glow
+
+    // Wobble for organic shape
+    final wobble1 =
+        math.sin(sparklePhase * 1.2 * wobbleSpeed + particle.index) *
+        currentSize *
+        0.12;
+    final wobble2 =
+        math.cos(sparklePhase * 1.0 * wobbleSpeed + particle.index * 1.3) *
+        currentSize *
+        0.1;
+    final wobble3 =
+        math.sin(sparklePhase * 1.5 * wobbleSpeed + particle.index * 0.8) *
+        currentSize *
+        0.08;
+
+    // === SOFT GRADIENT SPRITE (Light Recipe #5) ===
+    // Use soft circular gradient texture - white center, alpha fade to edges
+
+    // Layer 1: Outer halo (soft aura)
+    if (depthFactor > 0.15) {
+      final outerHaloRadius = currentSize * glowRadius * 1.5;
+      final haloPaint =
+          Paint()
+            ..color = baseColor.withOpacity(
+              opacity * haloOpacity * 0.5 * pulseFactor,
+            )
+            ..maskFilter = MaskFilter.blur(
+              BlurStyle.normal,
+              glowSoftness * 1.5,
+            );
+      canvas.drawCircle(pos, outerHaloRadius, haloPaint);
+    }
+
+    // Layer 2: Main glow halo
     if (depthFactor > 0.2) {
-      final bloomRadius = currentSize * 5.0;
-      final bloomPaint = Paint()
-        ..color = baseColor.withOpacity(opacity * 0.2 * pulseFactor)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
-      canvas.drawCircle(pos, bloomRadius, bloomPaint);
+      final haloRadius = currentSize * glowRadius;
+      final haloGlowPaint =
+          Paint()
+            ..shader = RadialGradient(
+              colors: [
+                coreColor.withOpacity(opacity * haloOpacity),
+                baseColor.withOpacity(opacity * haloOpacity * 0.6),
+                Colors.transparent,
+              ],
+              stops: const [0.0, 0.4, 1.0],
+            ).createShader(Rect.fromCircle(center: pos, radius: haloRadius))
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, glowSoftness);
+      canvas.drawCircle(pos, haloRadius, haloGlowPaint);
     }
-    
-    // Layer 2: Medium orange glow
-    if (depthFactor > 0.25) {
-      final midGlowRadius = currentSize * 3.0;
-      final midGlowPaint = Paint()
-        ..shader = RadialGradient(
-          colors: [
-            coreColor.withOpacity(opacity * 0.35),
-            baseColor.withOpacity(opacity * 0.25),
-            Colors.transparent,
-          ],
-          stops: const [0.0, 0.5, 1.0],
-        ).createShader(Rect.fromCircle(center: pos, radius: midGlowRadius))
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
-      canvas.drawCircle(pos, midGlowRadius, midGlowPaint);
-    }
-    
-    // Layer 3: Inner warm glow - slightly offset for organic feel
-    final innerGlowRadius = currentSize * 1.8;
-    final innerGlowPaint = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          coreColor.withOpacity(opacity * 0.6),
-          baseColor.withOpacity(opacity * 0.4),
-          Colors.transparent,
-        ],
-        stops: const [0.0, 0.6, 1.0],
-      ).createShader(Rect.fromCircle(
-        center: Offset(pos.dx + wobble1 * 0.3, pos.dy + wobble2 * 0.3),
-        radius: innerGlowRadius,
-      ))
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+
+    // Layer 3: Inner glow (tighter)
+    final innerGlowRadius = currentSize * glowRadius * 0.5;
+    final innerGlowPaint =
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              coreColor.withOpacity(opacity * 0.7),
+              baseColor.withOpacity(opacity * 0.5),
+              Colors.transparent,
+            ],
+            stops: const [0.0, 0.5, 1.0],
+          ).createShader(
+            Rect.fromCircle(
+              center: Offset(pos.dx + wobble1 * 0.2, pos.dy + wobble2 * 0.2),
+              radius: innerGlowRadius,
+            ),
+          )
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, glowSoftness * 0.3);
     canvas.drawCircle(
-      Offset(pos.dx + wobble1 * 0.3, pos.dy + wobble2 * 0.3),
+      Offset(pos.dx + wobble1 * 0.2, pos.dy + wobble2 * 0.2),
       innerGlowRadius,
       innerGlowPaint,
     );
-    
-    // === ORGANIC FIRE CORE - Multiple wobbly circles ===
-    
-    // Main body - slightly squished/stretched
-    final bodyWidth = currentSize * (1.0 + wobble1 * 0.1);
-    final bodyHeight = currentSize * (1.0 - wobble2 * 0.08);
-    final bodyPaint = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          hotWhite.withOpacity(opacity * 0.9),
-          coreColor.withOpacity(opacity * 0.8),
-          baseColor.withOpacity(opacity * 0.6),
-        ],
-        stops: const [0.0, 0.4, 1.0],
-      ).createShader(Rect.fromCenter(center: pos, width: bodyWidth * 2, height: bodyHeight * 2));
+
+    // === EMISSIVE CORE (Light Recipe #1 & #2) ===
+    // Bright core with emissive intensity
+
+    // Main body with emissive boost
+    final bodyWidth = currentSize * (1.0 + wobble1 * 0.08);
+    final bodyHeight = currentSize * (1.0 - wobble2 * 0.06);
+    final coreBrightness = math.min(1.0, opacity * coreIntensity);
+
+    final bodyPaint =
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              Colors.white.withOpacity(coreBrightness),
+              coreColor.withOpacity(coreBrightness * 0.9),
+              baseColor.withOpacity(coreBrightness * 0.6),
+            ],
+            stops: const [0.0, 0.3, 1.0],
+          ).createShader(
+            Rect.fromCenter(
+              center: pos,
+              width: bodyWidth * 2,
+              height: bodyHeight * 2,
+            ),
+          );
     canvas.drawOval(
-      Rect.fromCenter(center: pos, width: bodyWidth * 2, height: bodyHeight * 2),
+      Rect.fromCenter(
+        center: pos,
+        width: bodyWidth * 2,
+        height: bodyHeight * 2,
+      ),
       bodyPaint,
     );
-    
-    // Secondary lobe - offset for organic shape
+
+    // Secondary organic lobe
     if (depthFactor > 0.35) {
-      final lobe1Pos = Offset(pos.dx + wobble1, pos.dy + wobble2 * 0.5);
-      final lobe1Size = currentSize * 0.65;
-      final lobe1Paint = Paint()
-        ..color = coreColor.withOpacity(opacity * 0.7)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1);
+      final lobe1Pos = Offset(pos.dx + wobble1 * 0.8, pos.dy + wobble2 * 0.4);
+      final lobe1Size = currentSize * 0.55;
+      final lobe1Paint =
+          Paint()
+            ..color = coreColor.withOpacity(coreBrightness * 0.7)
+            ..maskFilter = MaskFilter.blur(
+              BlurStyle.normal,
+              glowSoftness * 0.1,
+            );
       canvas.drawCircle(lobe1Pos, lobe1Size, lobe1Paint);
     }
-    
-    // Third lobe - different offset
-    if (depthFactor > 0.45) {
-      final lobe2Pos = Offset(pos.dx - wobble2 * 0.7, pos.dy + wobble3);
-      final lobe2Size = currentSize * 0.5;
-      final lobe2Paint = Paint()
-        ..color = coreColor.withOpacity(opacity * 0.6)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1);
-      canvas.drawCircle(lobe2Pos, lobe2Size, lobe2Paint);
-    }
-    
-    // Hot white center - the brightest point
-    if (depthFactor > 0.3) {
-      final hotSize = currentSize * 0.4 * flickerFactor;
-      final hotPaint = Paint()
-        ..color = hotWhite.withOpacity(opacity * 0.95)
-        ..style = PaintingStyle.fill;
+
+    // === HOT WHITE CENTER (emissive peak) ===
+    if (depthFactor > 0.25) {
+      final hotSize = currentSize * 0.45 * flickerFactor * coreIntensity * 0.5;
+      final hotPaint =
+          Paint()
+            ..color = Colors.white.withOpacity(
+              math.min(1.0, coreBrightness * 1.1),
+            )
+            ..style = PaintingStyle.fill;
       canvas.drawCircle(pos, hotSize, hotPaint);
     }
-    
-    // Occasional bright flare
-    if (particle.sparkle > 0.88 && flickerFactor > 0.9 && depthFactor > 0.5) {
-      final flarePaint = Paint()
-        ..color = hotWhite.withOpacity(0.9)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
-      canvas.drawCircle(pos, currentSize * 0.7, flarePaint);
+
+    // Occasional intense flare (simulates HDR peak)
+    if (particle.sparkle > 0.85 && flickerFactor > 0.9 && depthFactor > 0.45) {
+      final flareSize = currentSize * 0.6 * coreIntensity * 0.6;
+      final flarePaint =
+          Paint()
+            ..color = Colors.white.withOpacity(0.95)
+            ..maskFilter = MaskFilter.blur(
+              BlurStyle.normal,
+              glowSoftness * 0.2,
+            );
+      canvas.drawCircle(pos, flareSize, flarePaint);
     }
+  }
+
+  /// Simulate additive blending by lightening the color
+  Color _applyAdditive(Color color, double intensity) {
+    final r = (color.red + (255 - color.red) * intensity).clamp(0, 255).toInt();
+    final g =
+        (color.green + (255 - color.green) * intensity).clamp(0, 255).toInt();
+    final b =
+        (color.blue + (255 - color.blue) * intensity).clamp(0, 255).toInt();
+    return Color.fromARGB(color.alpha, r, g, b);
   }
 
   void _drawCenterGlow(Canvas canvas, Offset center, double radius) {
     // Subtle ambient glow in center - doesn't interfere with particles
-    final glow = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          Colors.white.withOpacity(0.06),
-          Colors.white.withOpacity(0.02),
-          Colors.transparent,
-        ],
-        stops: const [0.0, 0.4, 1.0],
-      ).createShader(Rect.fromCircle(center: center, radius: radius * 0.4))
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
-    
+    final glow =
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              Colors.white.withOpacity(0.06),
+              Colors.white.withOpacity(0.02),
+              Colors.transparent,
+            ],
+            stops: const [0.0, 0.4, 1.0],
+          ).createShader(Rect.fromCircle(center: center, radius: radius * 0.4))
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
+
     canvas.drawCircle(center, radius * 0.3, glow);
   }
 
@@ -642,8 +860,11 @@ class AwaSphereHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final h = height ?? 
-        (halfScreen ? AwaSphereConfig.getHalfScreenHeight(context) : AwaSphereConfig.lobbyHeight);
+    final h =
+        height ??
+        (halfScreen
+            ? AwaSphereConfig.getHalfScreenHeight(context)
+            : AwaSphereConfig.lobbyHeight);
     final primary = primaryColor ?? AwaSphereConfig.primaryColor;
     final secondary = secondaryColor ?? AwaSphereConfig.secondaryColor;
     final accent = accentColor ?? AwaSphereConfig.accentColor;
@@ -669,7 +890,7 @@ class AwaSphereHeader extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // The sphere - full width, interactive
           Positioned.fill(
             child: AwaSphere(
@@ -684,10 +905,9 @@ class AwaSphereHeader extends StatelessWidget {
               energy: energy,
             ),
           ),
-          
+
           // Optional child content overlay
-          if (child != null)
-            Positioned.fill(child: child!),
+          if (child != null) Positioned.fill(child: child!),
         ],
       ),
     );
@@ -699,11 +919,7 @@ class AwaSphereCompact extends StatelessWidget {
   final double size;
   final Color? color;
 
-  const AwaSphereCompact({
-    super.key,
-    this.size = 60,
-    this.color,
-  });
+  const AwaSphereCompact({super.key, this.size = 60, this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -714,7 +930,8 @@ class AwaSphereCompact extends StatelessWidget {
         height: size,
         width: size,
         primaryColor: color ?? AwaSphereConfig.primaryColor,
-        secondaryColor: color?.withOpacity(0.6) ?? AwaSphereConfig.secondaryColor,
+        secondaryColor:
+            color?.withOpacity(0.6) ?? AwaSphereConfig.secondaryColor,
         interactive: false,
         animate: true,
         particleCount: 60,
