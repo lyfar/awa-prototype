@@ -47,6 +47,7 @@ class AwaSphere extends StatefulWidget {
   final double particleSize;
   final int particleCount;
   final double energy;
+  final bool showParticles;
 
   // Use global settings from AwaSoulSettings singleton
   final bool useGlobalSettings;
@@ -55,6 +56,7 @@ class AwaSphere extends StatefulWidget {
   final int backdropDotCount;
   final double backdropDotSize;
   final double backdropOpacity;
+  final bool showBackdrop;
   final Color? backdropGradientStart;
   final Color? backdropGradientMid;
   final Color? backdropGradientEnd;
@@ -84,12 +86,14 @@ class AwaSphere extends StatefulWidget {
     this.animate = true,
     this.particleSize = AwaSphereConfig.particleSize,
     this.particleCount = AwaSphereConfig.particleCount,
+    this.showParticles = true,
     this.energy = 0.0,
     this.useGlobalSettings = true,
     // 2D Backdrop defaults
     this.backdropDotCount = 380,
     this.backdropDotSize = 5.0,
     this.backdropOpacity = 0.75,
+    this.showBackdrop = true,
     this.backdropGradientStart,
     this.backdropGradientMid,
     this.backdropGradientEnd,
@@ -255,6 +259,8 @@ class _AwaSphereState extends State<AwaSphere>
     final driftSpeedMult = settings?.driftSpeed ?? widget.driftSpeed;
     final flickerSpeedMult = settings?.flickerSpeed ?? widget.flickerSpeed;
     final breathIntensity = settings?.breathingIntensity ?? 1.0;
+    final showParticles = settings?.showParticles ?? widget.showParticles;
+    final showBackdrop = settings?.showBackdrop ?? widget.showBackdrop;
 
     // Apply speed multipliers to animation phases
     final autoRotation = _time * _rotationSpeed * 2 * math.pi;
@@ -286,12 +292,14 @@ class _AwaSphereState extends State<AwaSphere>
             // Use global settings if enabled
             particleSize: settings?.particleSize ?? widget.particleSize,
             particleCount: settings?.particleCount ?? widget.particleCount,
+            showParticles: showParticles,
             backdropDotCount:
                 settings?.backdropDotCount ?? widget.backdropDotCount,
             backdropDotSize:
                 settings?.backdropDotSize ?? widget.backdropDotSize,
             backdropOpacity:
                 settings?.backdropOpacity ?? widget.backdropOpacity,
+            showBackdrop: showBackdrop,
             backdropGradientStart:
                 settings?.gradientStart ?? widget.backdropGradientStart,
             backdropGradientMid:
@@ -367,10 +375,12 @@ class _AwaSphereParticles extends CustomPainter {
   final Color accentColor;
   final double particleSize;
   final int particleCount;
+  final bool showParticles;
   // 2D Backdrop
   final int backdropDotCount;
   final double backdropDotSize;
   final double backdropOpacity;
+  final bool showBackdrop;
   final Color? backdropGradientStart;
   final Color? backdropGradientMid;
   final Color? backdropGradientEnd;
@@ -399,9 +409,11 @@ class _AwaSphereParticles extends CustomPainter {
     required this.accentColor,
     required this.particleSize,
     required this.particleCount,
+    required this.showParticles,
     required this.backdropDotCount,
     required this.backdropDotSize,
     required this.backdropOpacity,
+    required this.showBackdrop,
     this.backdropGradientStart,
     this.backdropGradientMid,
     this.backdropGradientEnd,
@@ -429,64 +441,68 @@ class _AwaSphereParticles extends CustomPainter {
     final waveIntensity = 0.06 + (energy * 0.03);
 
     // Draw subtle dark sphere backdrop
-    _drawDarkSphere(canvas, center, baseRadius);
-
-    // Generate and sort particles by z-depth
-    final particles = <_Particle>[];
-
-    for (int i = 0; i < particleCount; i++) {
-      final t = i / particleCount;
-      final inclination = math.acos(1 - 2 * t);
-      final azimuth = goldenAngle * i;
-
-      final particleWaveOffset = math.sin(wavePhase + i * 0.1) * waveIntensity;
-      final particleRadius = baseRadius * (1 + particleWaveOffset);
-
-      double x = math.sin(inclination) * math.cos(azimuth);
-      double y = math.sin(inclination) * math.sin(azimuth);
-      double z = math.cos(inclination);
-
-      // Apply rotation around Y axis
-      final cosY = math.cos(rotationY);
-      final sinY = math.sin(rotationY);
-      final newX = x * cosY - z * sinY;
-      final newZ = x * sinY + z * cosY;
-      x = newX;
-      z = newZ;
-
-      // Apply rotation around X axis
-      final cosX = math.cos(rotationX);
-      final sinX = math.sin(rotationX);
-      final newY = y * cosX - z * sinX;
-      final newZ2 = y * sinX + z * cosX;
-      y = newY;
-      z = newZ2;
-
-      // Subtle floating movement
-      final floatX = math.sin(wavePhase * 1.1 + i * 0.15) * floatIntensity;
-      final floatY = math.cos(wavePhase * 0.9 + i * 0.19) * floatIntensity;
-
-      // Sparkle/twinkle factor
-      final sparkle = (math.sin(sparklePhase * 2 + i * 0.35) + 1) / 2;
-
-      particles.add(
-        _Particle(
-          x: x * particleRadius + floatX,
-          y: y * particleRadius + floatY,
-          z: z,
-          index: i,
-          sparkle: sparkle,
-          waveOffset: particleWaveOffset,
-        ),
-      );
+    if (showBackdrop && backdropDotCount > 0 && backdropOpacity > 0) {
+      _drawDarkSphere(canvas, center, baseRadius);
     }
 
-    // Sort by z for proper depth rendering
-    particles.sort((a, b) => a.z.compareTo(b.z));
+    if (showParticles && particleCount > 0) {
+      // Generate and sort particles by z-depth
+      final particles = <_Particle>[];
 
-    // Draw particles as light points
-    for (final particle in particles) {
-      _drawLightParticle(canvas, center, particle, baseRadius);
+      for (int i = 0; i < particleCount; i++) {
+        final t = i / particleCount;
+        final inclination = math.acos(1 - 2 * t);
+        final azimuth = goldenAngle * i;
+
+        final particleWaveOffset = math.sin(wavePhase + i * 0.1) * waveIntensity;
+        final particleRadius = baseRadius * (1 + particleWaveOffset);
+
+        double x = math.sin(inclination) * math.cos(azimuth);
+        double y = math.sin(inclination) * math.sin(azimuth);
+        double z = math.cos(inclination);
+
+        // Apply rotation around Y axis
+        final cosY = math.cos(rotationY);
+        final sinY = math.sin(rotationY);
+        final newX = x * cosY - z * sinY;
+        final newZ = x * sinY + z * cosY;
+        x = newX;
+        z = newZ;
+
+        // Apply rotation around X axis
+        final cosX = math.cos(rotationX);
+        final sinX = math.sin(rotationX);
+        final newY = y * cosX - z * sinX;
+        final newZ2 = y * sinX + z * cosX;
+        y = newY;
+        z = newZ2;
+
+        // Subtle floating movement
+        final floatX = math.sin(wavePhase * 1.1 + i * 0.15) * floatIntensity;
+        final floatY = math.cos(wavePhase * 0.9 + i * 0.19) * floatIntensity;
+
+        // Sparkle/twinkle factor
+        final sparkle = (math.sin(sparklePhase * 2 + i * 0.35) + 1) / 2;
+
+        particles.add(
+          _Particle(
+            x: x * particleRadius + floatX,
+            y: y * particleRadius + floatY,
+            z: z,
+            index: i,
+            sparkle: sparkle,
+            waveOffset: particleWaveOffset,
+          ),
+        );
+      }
+
+      // Sort by z for proper depth rendering
+      particles.sort((a, b) => a.z.compareTo(b.z));
+
+      // Draw particles as light points
+      for (final particle in particles) {
+        _drawLightParticle(canvas, center, particle, baseRadius);
+      }
     }
 
     // Draw center glow

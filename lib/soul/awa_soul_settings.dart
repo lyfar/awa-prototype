@@ -12,31 +12,33 @@ class AwaSoulSettings extends ChangeNotifier {
   AwaSoulSettings._internal();
   
   // === 3D PARTICLE SETTINGS ===
-  int _particleCount = 350;
-  double _particleSize = 3.5;
+  int _particleCount = 470;
+  double _particleSize = 4.85;
   
   // === 2D BACKDROP SETTINGS ===
-  int _backdropDotCount = 380;
-  double _backdropDotSize = 5.0;
-  double _backdropOpacity = 0.75;
+  int _backdropDotCount = 152;
+  double _backdropDotSize = 4.35;
+  double _backdropOpacity = 0.56;
   
   // === GRADIENT COLORS ===
-  Color _gradientStart = const Color(0xFFE8C8B8);  // Center - warm beige
-  Color _gradientMid = const Color(0xFFFFD4A8);    // Middle - golden peach
-  Color _gradientEnd = const Color(0xFFD8A0A8);    // Edge - dusty rose
+  Color _gradientStart = const Color(0xFFFFA573);  // Center - saturated apricot
+  Color _gradientMid = const Color(0xFFFF8B7A);    // Middle - warm ember
+  Color _gradientEnd = const Color(0xFFFF7BC5);    // Edge - vivid rosy glow
   
   // === ANIMATION SPEEDS ===
-  double _flickerSpeed = 1.0;
-  double _pulseSpeed = 1.0;
+  double _flickerSpeed = 2.6;
+  double _pulseSpeed = 2.98;
   double _driftSpeed = 1.0;
   double _wobbleSpeed = 1.0;
-  double _breathingIntensity = 1.0;  // How much the sphere "breathes" (0 = none, 1 = normal, 2 = heavy)
+  double _breathingIntensity = 1.88;  // How much the sphere "breathes" (0 = none, 1 = normal, 2 = heavy)
+  bool _showParticles = true;
+  bool _showBackdrop = true;
   
   // === LIGHT/EMISSIVE SETTINGS ===
-  double _emissiveIntensity = 1.5;    // HDR-like brightness multiplier (1.0 = normal, 2.0+ = glowing)
-  double _coreIntensity = 2.0;        // How bright the particle center is
-  double _glowRadius = 3.0;           // How far the glow extends (multiplier of particle size)
-  double _glowSoftness = 8.0;         // Blur amount for glow layers
+  double _emissiveIntensity = 3.0;    // HDR-like brightness multiplier (1.0 = normal, 2.0+ = glowing)
+  double _coreIntensity = 4.0;        // How bright the particle center is
+  double _glowRadius = 1.0;           // How far the glow extends (multiplier of particle size)
+  double _glowSoftness = 20.0;        // Blur amount for glow layers
   bool _additiveBlending = true;      // Simulate additive blend (lighter colors)
   double _haloOpacity = 0.4;          // Outer halo opacity
   
@@ -64,6 +66,8 @@ class AwaSoulSettings extends ChangeNotifier {
   double get driftSpeed => _driftSpeed;
   double get wobbleSpeed => _wobbleSpeed;
   double get breathingIntensity => _breathingIntensity;
+  bool get showParticles => _showParticles;
+  bool get showBackdrop => _showBackdrop;
   double get emissiveIntensity => _emissiveIntensity;
   double get coreIntensity => _coreIntensity;
   double get glowRadius => _glowRadius;
@@ -91,6 +95,8 @@ class AwaSoulSettings extends ChangeNotifier {
   set driftSpeed(double v) { _driftSpeed = v; notifyListeners(); }
   set wobbleSpeed(double v) { _wobbleSpeed = v; notifyListeners(); }
   set breathingIntensity(double v) { _breathingIntensity = v; notifyListeners(); }
+  set showParticles(bool v) { _showParticles = v; notifyListeners(); }
+  set showBackdrop(bool v) { _showBackdrop = v; notifyListeners(); }
   set emissiveIntensity(double v) { _emissiveIntensity = v; notifyListeners(); }
   set coreIntensity(double v) { _coreIntensity = v; notifyListeners(); }
   set glowRadius(double v) { _glowRadius = v; notifyListeners(); }
@@ -144,23 +150,25 @@ class AwaSoulSettings extends ChangeNotifier {
   
   /// Reset to defaults
   void resetToDefaults() {
-    _particleCount = 350;
-    _particleSize = 3.5;
-    _backdropDotCount = 380;
-    _backdropDotSize = 5.0;
-    _backdropOpacity = 0.75;
-    _gradientStart = const Color(0xFFE8C8B8);
-    _gradientMid = const Color(0xFFFFD4A8);
-    _gradientEnd = const Color(0xFFD8A0A8);
-    _flickerSpeed = 1.0;
-    _pulseSpeed = 1.0;
+    _particleCount = 470;
+    _particleSize = 4.85;
+    _backdropDotCount = 152;
+    _backdropDotSize = 4.35;
+    _backdropOpacity = 0.56;
+    _gradientStart = const Color(0xFFFFA573);
+    _gradientMid = const Color(0xFFFF8B7A);
+    _gradientEnd = const Color(0xFFFF7BC5);
+    _flickerSpeed = 2.6;
+    _pulseSpeed = 2.98;
     _driftSpeed = 1.0;
     _wobbleSpeed = 1.0;
-    _breathingIntensity = 1.0;
-    _emissiveIntensity = 1.5;
-    _coreIntensity = 2.0;
-    _glowRadius = 3.0;
-    _glowSoftness = 8.0;
+    _breathingIntensity = 1.88;
+    _showParticles = true;
+    _showBackdrop = true;
+    _emissiveIntensity = 3.0;
+    _coreIntensity = 4.0;
+    _glowRadius = 1.0;
+    _glowSoftness = 20.0;
     _additiveBlending = true;
     _haloOpacity = 0.4;
     _enableBloom = true;
@@ -172,4 +180,3 @@ class AwaSoulSettings extends ChangeNotifier {
     notifyListeners();
   }
 }
-

@@ -15,20 +15,27 @@ class AwaSoulDebugScreen extends StatefulWidget {
 class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
   final _settings = AwaSoulSettings();
   String? _expandedSection;
+  final Map<String, TextEditingController> _colorControllers = {};
+  final Map<String, String?> _colorErrors = {};
 
   @override
   void initState() {
     super.initState();
     _settings.addListener(_onSettingsChanged);
+    _syncColorControllers();
   }
   
   @override
   void dispose() {
     _settings.removeListener(_onSettingsChanged);
+    for (final controller in _colorControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
   
   void _onSettingsChanged() {
+    _syncColorControllers();
     setState(() {});
   }
   
@@ -274,6 +281,12 @@ wobbleSpeed: ${_settings.wobbleSpeed.toStringAsFixed(2)}
             icon: Icons.blur_on,
             color: Colors.blue,
             children: [
+              _buildSwitch(
+                'Show particles',
+                'Toggle all 3D light points on/off',
+                _settings.showParticles,
+                (v) => setState(() => _settings.showParticles = v),
+              ),
               _buildSlider('Particle Count', 'Number of light points', 
                 _settings.particleCount.toDouble(), 100, 600, 
                 (v) => _settings.particleCount = v.round()),
@@ -291,6 +304,12 @@ wobbleSpeed: ${_settings.wobbleSpeed.toStringAsFixed(2)}
             icon: Icons.gradient,
             color: Colors.pink,
             children: [
+              _buildSwitch(
+                'Show backdrop',
+                'Toggle spiral dots and gradient',
+                _settings.showBackdrop,
+                (v) => setState(() => _settings.showBackdrop = v),
+              ),
               _buildSlider('Dot Count', 'Number of backdrop dots', 
                 _settings.backdropDotCount.toDouble(), 100, 600, 
                 (v) => _settings.backdropDotCount = v.round()),
@@ -306,6 +325,20 @@ wobbleSpeed: ${_settings.wobbleSpeed.toStringAsFixed(2)}
               _buildColorRow('Center', _settings.gradientStart, (c) => _settings.gradientStart = c),
               _buildColorRow('Middle', _settings.gradientMid, (c) => _settings.gradientMid = c),
               _buildColorRow('Edge', _settings.gradientEnd, (c) => _settings.gradientEnd = c),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: _applySaturatedBackdropPalette,
+                  icon: const Icon(Icons.auto_fix_high, size: 16, color: Colors.deepOrange),
+                  label: const Text('Saturated preset'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.deepOrange,
+                    side: const BorderSide(color: Colors.deepOrangeAccent),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ),
             ],
           ),
         ],
@@ -441,46 +474,258 @@ wobbleSpeed: ${_settings.wobbleSpeed.toStringAsFixed(2)}
   }
   
   Widget _buildColorRow(String label, Color color, ValueChanged<Color> onChanged) {
+    final key = 'color_$label';
+    final controller = _controllerFor(key, color);
+    final errorText = _colorErrors[key];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 50, child: Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600))),
-          const SizedBox(width: 8),
-          ..._colorPresets.map((preset) => Padding(
-            padding: const EdgeInsets.only(right: 5),
-            child: GestureDetector(
-              onTap: () => onChanged(preset),
-              child: Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: preset,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: color == preset ? Colors.black : Colors.grey.shade300,
-                    width: color == preset ? 2.5 : 1,
+          Row(
+            children: [
+              SizedBox(width: 50, child: Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600))),
+              const SizedBox(width: 8),
+              ..._colorPresets.map((preset) => Padding(
+                padding: const EdgeInsets.only(right: 5),
+                child: GestureDetector(
+                  onTap: () {
+                    _colorErrors[key] = null;
+                    onChanged(preset);
+                  },
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: preset,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: color == preset ? Colors.black : Colors.grey.shade300,
+                        width: color == preset ? 2.5 : 1,
+                      ),
+                      boxShadow: color == preset ? [
+                        BoxShadow(color: preset.withOpacity(0.5), blurRadius: 4),
+                      ] : null,
+                    ),
                   ),
-                  boxShadow: color == preset ? [
-                    BoxShadow(color: preset.withOpacity(0.5), blurRadius: 4),
-                  ] : null,
                 ),
+              )),
+            ],
+          ),
+          const SizedBox(height: 6),
+          SizedBox(
+            width: 200,
+            child: TextField(
+              controller: controller,
+              onSubmitted: (_) => _applyCustomColor(key, controller.text, onChanged),
+              decoration: InputDecoration(
+                labelText: 'Custom hex',
+                hintText: '#FFA573',
+                errorText: errorText,
+                prefixIcon: const Icon(Icons.colorize, size: 16),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                filled: true,
+                fillColor: Colors.white,
+                labelStyle: const TextStyle(color: Colors.black87),
+                hintStyle: TextStyle(color: Colors.grey.shade500),
               ),
+              style: const TextStyle(color: Colors.black87),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[A-Fa-f0-9#]')),
+              ],
+              textCapitalization: TextCapitalization.characters,
             ),
-          )),
+          ),
+          TextButton(
+            onPressed: () => _openColorPicker(label, color, onChanged, key),
+            child: const Text('Pick color'),
+          ),
         ],
       ),
     );
   }
   
   static const List<Color> _colorPresets = [
-    Color(0xFFE8C8B8),
-    Color(0xFFFFF0E0),
-    Color(0xFFFFD4A8),
-    Color(0xFFFFB07C),
-    Color(0xFFE8967C),
-    Color(0xFFD8A0A8),
-    Color(0xFFEFABBF),
-    Color(0xFFB89FC1),
+    Color(0xFFFFD7C0), // default center
+    Color(0xFFFFBFA1),
+    Color(0xFFFFA573), // default mid
+    Color(0xFFFF8B7A),
+    Color(0xFFFF7BC5), // default edge
+    Color(0xFFE86BAF),
+    Color(0xFFD08CF2),
+    Color(0xFFB76DE0),
   ];
+
+  void _applySaturatedBackdropPalette() {
+    setState(() {
+      _settings.gradientStart = const Color(0xFFFFD7C0); // peach cream
+      _settings.gradientMid = const Color(0xFFFFA573);   // apricot
+      _settings.gradientEnd = const Color(0xFFFF7BC5);   // vivid rosy glow
+    });
+  }
+
+  TextEditingController _controllerFor(String key, Color color) {
+    final hex = _formatColorHex(color);
+    final existing = _colorControllers[key];
+    if (existing != null) {
+      if (existing.text.toUpperCase() != hex) {
+        existing.text = hex;
+      }
+      return existing;
+    }
+    final controller = TextEditingController(text: hex);
+    _colorControllers[key] = controller;
+    return controller;
+  }
+
+  void _applyCustomColor(String key, String input, ValueChanged<Color> onChanged) {
+    final color = _parseColor(input);
+    if (color == null) {
+      setState(() {
+        _colorErrors[key] = 'Use #RRGGBB or RRGGBB';
+      });
+      return;
+    }
+    setState(() {
+      _colorErrors[key] = null;
+      onChanged(color);
+    });
+  }
+
+  String _formatColorHex(Color color) {
+    final value = color.value.toRadixString(16).padLeft(8, '0').toUpperCase();
+    return '#${value.substring(2)}';
+  }
+
+  Color? _parseColor(String input) {
+    var hex = input.trim();
+    if (hex.startsWith('#')) hex = hex.substring(1);
+    if (hex.length == 6) {
+      hex = 'FF$hex';
+    }
+    if (hex.length != 8) return null;
+    final int? value = int.tryParse(hex, radix: 16);
+    if (value == null) return null;
+    return Color(value);
+  }
+
+  void _syncColorControllers() {
+    _controllerFor('color_Center', _settings.gradientStart);
+    _controllerFor('color_Middle', _settings.gradientMid);
+    _controllerFor('color_Edge', _settings.gradientEnd);
+  }
+
+  Future<void> _openColorPicker(
+    String label,
+    Color initialColor,
+    ValueChanged<Color> onChanged,
+    String key,
+  ) async {
+    Color tempColor = initialColor;
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('$label color'),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    height: 48,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: tempColor,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.black12),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildChannelSlider(
+                    'R',
+                    tempColor.r.toDouble(),
+                    (v) => setState(() {
+                      tempColor = tempColor.withValues(
+                        red: v,
+                        green: tempColor.g,
+                        blue: tempColor.b,
+                        alpha: tempColor.a,
+                      );
+                    }),
+                  ),
+                  _buildChannelSlider(
+                    'G',
+                    tempColor.g.toDouble(),
+                    (v) => setState(() {
+                      tempColor = tempColor.withValues(
+                        red: tempColor.r,
+                        green: v,
+                        blue: tempColor.b,
+                        alpha: tempColor.a,
+                      );
+                    }),
+                  ),
+                  _buildChannelSlider(
+                    'B',
+                    tempColor.b.toDouble(),
+                    (v) => setState(() {
+                      tempColor = tempColor.withValues(
+                        red: tempColor.r,
+                        green: tempColor.g,
+                        blue: v,
+                        alpha: tempColor.a,
+                      );
+                    }),
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _colorErrors[key] = null;
+                Navigator.of(context).pop();
+                setState(() {
+                  onChanged(tempColor);
+                });
+              },
+              child: const Text('Apply'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildChannelSlider(String label, double value, ValueChanged<double> onChanged) {
+    return Row(
+      children: [
+        SizedBox(width: 18, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600))),
+        Expanded(
+          child: Slider(
+            value: value,
+            min: 0,
+            max: 255,
+            activeColor: Colors.deepOrange,
+            onChanged: onChanged,
+          ),
+        ),
+        SizedBox(
+          width: 40,
+          child: Text(
+            value.toInt().toString().padLeft(3, ' '),
+            textAlign: TextAlign.right,
+          ),
+        ),
+      ],
+    );
+  }
 }
