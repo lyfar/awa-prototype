@@ -328,6 +328,10 @@ class _AwaSphereState extends State<AwaSphere>
             wiggleIntensity: settings?.layer3D.wiggleIntensity ?? 0.12,
             flickerIntensity: settings?.layer3D.flickerIntensity ?? 0.15,
             sizeVariation: settings?.layer3D.sizeVariation ?? 0.5,
+            // 3D color settings
+            particle3DCoreColor: settings?.layer3D.coreColor ?? const Color(0xFFFFFFFB),
+            particle3DMidColor: settings?.layer3D.midColor ?? const Color(0xFFFFE8C0),
+            particle3DOuterColor: settings?.layer3D.outerColor ?? const Color(0xFFFFB880),
             // 2D layer settings
             blinkMode: settings?.layer2D.blinkMode ?? FlickerMode.gentle,
             blinkSpeed: settings?.layer2D.blinkSpeed ?? 0.6,
@@ -432,6 +436,10 @@ class _AwaSphereParticles extends CustomPainter {
   final double wiggleIntensity;
   final double flickerIntensity;
   final double sizeVariation;
+  // 3D Color settings
+  final Color particle3DCoreColor;
+  final Color particle3DMidColor;
+  final Color particle3DOuterColor;
   // 2D specific
   final FlickerMode blinkMode;
   final double blinkSpeed;
@@ -488,6 +496,10 @@ class _AwaSphereParticles extends CustomPainter {
     this.wiggleIntensity = 0.12,
     this.flickerIntensity = 0.15,
     this.sizeVariation = 0.5,
+    // 3D Colors - white/bright core by default for light effect
+    this.particle3DCoreColor = const Color(0xFFFFFFFB), // Near white
+    this.particle3DMidColor = const Color(0xFFFFE8C0),  // Warm yellow
+    this.particle3DOuterColor = const Color(0xFFFFB880), // Warm orange
     this.blinkMode = FlickerMode.gentle,
     this.blinkSpeed = 0.6,
     this.blinkIntensity = 0.25,
@@ -1012,32 +1024,29 @@ class _AwaSphereParticles extends CustomPainter {
     );
     final pulseFactor = 0.9 + pulse * 0.1;
 
-    // === EMISSIVE COLORS (HDR-like) ===
+    // === EMISSIVE COLORS from settings ===
     final normalizedX = (particle.x / radius + 1) / 2;
     final normalizedY = (particle.y / radius + 1) / 2;
     final gradientFactor = (normalizedX * 0.4 + normalizedY * 0.6);
 
-    // Fire color palette
-    const hotWhite = Color(0xFFFFFAF5);
-    const brightYellow = Color(0xFFFFE8C0);
-    const warmOrange = Color(0xFFFFB880);
-    const deepAmber = Color(0xFFE89878);
-    const softRose = Color(0xFFDDA0A0);
-
+    // Use configurable colors from settings
+    // Core = brightest (center of particle), Mid = transition, Outer = edge color
     Color baseColor;
-    Color coreColor;
+    Color particleCoreColor;
+    
+    // Gradient from outer to core based on position
     if (gradientFactor < 0.3) {
-      baseColor = Color.lerp(softRose, deepAmber, gradientFactor / 0.3)!;
-      coreColor = Color.lerp(warmOrange, brightYellow, gradientFactor / 0.3)!;
+      // Outer region - use outer color
+      baseColor = Color.lerp(particle3DOuterColor, particle3DMidColor, gradientFactor / 0.3)!;
+      particleCoreColor = Color.lerp(particle3DMidColor, particle3DCoreColor, gradientFactor / 0.3)!;
     } else if (gradientFactor < 0.6) {
-      baseColor =
-          Color.lerp(deepAmber, warmOrange, (gradientFactor - 0.3) / 0.3)!;
-      coreColor =
-          Color.lerp(brightYellow, hotWhite, (gradientFactor - 0.3) / 0.3)!;
+      // Mid region
+      baseColor = Color.lerp(particle3DMidColor, particle3DCoreColor, (gradientFactor - 0.3) / 0.3)!;
+      particleCoreColor = Color.lerp(particle3DCoreColor, Colors.white, (gradientFactor - 0.3) / 0.3 * 0.3)!;
     } else {
-      baseColor =
-          Color.lerp(warmOrange, brightYellow, (gradientFactor - 0.6) / 0.4)!;
-      coreColor = hotWhite;
+      // Core region - brightest
+      baseColor = Color.lerp(particle3DCoreColor, Colors.white, (gradientFactor - 0.6) / 0.4 * 0.2)!;
+      particleCoreColor = Color.lerp(particle3DCoreColor, Colors.white, 0.3)!;
     }
 
     // Apply emissive intensity (HDR simulation)
@@ -1046,7 +1055,7 @@ class _AwaSphereParticles extends CustomPainter {
     // Apply additive blending simulation (lighten colors)
     if (additiveBlending) {
       baseColor = _applyAdditive(baseColor, emissiveMult * 0.3);
-      coreColor = _applyAdditive(coreColor, emissiveMult * 0.5);
+      particleCoreColor = _applyAdditive(particleCoreColor, emissiveMult * 0.5);
     }
 
     // Brightness combines depth, flicker, pulse, and emissive
@@ -1166,7 +1175,7 @@ class _AwaSphereParticles extends CustomPainter {
           Paint()
             ..shader = RadialGradient(
               colors: [
-                coreColor.withOpacity(opacity * haloOpacity),
+                particleCoreColor.withOpacity(opacity * haloOpacity),
                 baseColor.withOpacity(opacity * haloOpacity * 0.6),
                 Colors.transparent,
               ],
@@ -1182,7 +1191,7 @@ class _AwaSphereParticles extends CustomPainter {
         Paint()
           ..shader = RadialGradient(
             colors: [
-              coreColor.withOpacity(opacity * 0.7),
+              particleCoreColor.withOpacity(opacity * 0.7),
               baseColor.withOpacity(opacity * 0.5),
               Colors.transparent,
             ],
@@ -1213,7 +1222,7 @@ class _AwaSphereParticles extends CustomPainter {
           ..shader = RadialGradient(
             colors: [
               Colors.white.withOpacity(coreBrightness),
-              coreColor.withOpacity(coreBrightness * 0.9),
+              particleCoreColor.withOpacity(coreBrightness * 0.9),
               baseColor.withOpacity(coreBrightness * 0.6),
             ],
             stops: const [0.0, 0.3, 1.0],
@@ -1239,7 +1248,7 @@ class _AwaSphereParticles extends CustomPainter {
       final lobe1Size = currentSize * 0.55;
       final lobe1Paint =
           Paint()
-            ..color = coreColor.withOpacity(coreBrightness * 0.7)
+            ..color = particleCoreColor.withOpacity(coreBrightness * 0.7)
             ..maskFilter = MaskFilter.blur(
               BlurStyle.normal,
               glowSoftness * 0.1,

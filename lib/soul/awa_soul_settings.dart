@@ -50,10 +50,10 @@ class Layer3DSettings {
   double haloOpacity;        // Outer glow visibility
   bool additiveBlending;     // Simulate light addition
   
-  // === COLOR ===
-  Color coreColor;           // Hot center color
+  // === COLOR (Core=brightest white center, Mid=transition, Outer=edge) ===
+  Color coreColor;           // Hot white center (brightest)
   Color midColor;            // Transition color
-  Color outerColor;          // Edge color
+  Color outerColor;          // Edge color (warmest)
   double colorTemperature;   // 0=cool, 1=hot
   double saturation;
   
@@ -94,9 +94,9 @@ class Layer3DSettings {
     this.glowSoftness = 20.0,
     this.haloOpacity = 0.4,
     this.additiveBlending = true,
-    this.coreColor = const Color(0xFFFFFAF5),
-    this.midColor = const Color(0xFFFFB880),
-    this.outerColor = const Color(0xFFDDA0A0),
+    this.coreColor = const Color(0xFFFFFFFB),  // Near white - brightest
+    this.midColor = const Color(0xFFFFE8C0),   // Warm yellow
+    this.outerColor = const Color(0xFFFFB880), // Warm orange
     this.colorTemperature = 0.5,
     this.saturation = 0.8,
     this.motionPattern = MotionPattern.gentle,

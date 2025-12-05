@@ -485,18 +485,19 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen>
         
         _buildSection(
           id: '3d_color',
-          title: 'Colors',
+          title: 'Particle Colors',
           icon: Icons.palette,
           color: Colors.deepOrange,
           children: [
-            _buildColorRow('Core', s.coreColor,
+            Text('Core = brightest center, Outer = edge glow', 
+                style: TextStyle(fontSize: 10, color: _theme.textMuted)),
+            const SizedBox(height: 8),
+            _buildColorRow('Core (bright)', s.coreColor,
                 (c) => _settings.update3D((s) => s.copyWith(coreColor: c))),
             _buildColorRow('Mid', s.midColor,
                 (c) => _settings.update3D((s) => s.copyWith(midColor: c))),
-            _buildColorRow('Outer', s.outerColor,
+            _buildColorRow('Outer (glow)', s.outerColor,
                 (c) => _settings.update3D((s) => s.copyWith(outerColor: c))),
-            _buildSlider('Temperature', s.colorTemperature, 0, 1,
-                (v) => _settings.update3D((s) => s.copyWith(colorTemperature: v))),
           ],
         ),
         
