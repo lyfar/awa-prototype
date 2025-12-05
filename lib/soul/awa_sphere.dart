@@ -515,9 +515,9 @@ class _AwaSphereParticles extends CustomPainter {
     final backdropRadius = radius * 1.08;
 
     // Use configurable gradient colors or defaults
-    final gradStart = backdropGradientStart ?? const Color(0xFFE8C8B8);
-    final gradMid = backdropGradientMid ?? const Color(0xFFFFD4A8);
-    final gradEnd = backdropGradientEnd ?? const Color(0xFFD8A0A8);
+    final gradStart = backdropGradientStart ?? const Color(0xFFFFA573);
+    final gradMid = backdropGradientMid ?? const Color(0xFFFF8B7A);
+    final gradEnd = backdropGradientEnd ?? const Color(0xFFFF7BC5);
 
     // Draw backdrop spiral dots with gradient and blink
     for (int i = 0; i < backdropDotCount; i++) {

@@ -167,7 +167,9 @@ wobbleSpeed: ${_settings.wobbleSpeed.toStringAsFixed(2)}
   Widget _buildSpherePreview() {
     // Force rebuild with key when settings change
     return Stack(
-      key: ValueKey('sphere_${_settings.flickerSpeed}_${_settings.pulseSpeed}_${_settings.driftSpeed}'),
+      key: ValueKey(
+        'sphere_${_settings.flickerSpeed}_${_settings.pulseSpeed}_${_settings.driftSpeed}_${_settings.gradientStart.value}_${_settings.gradientMid.value}_${_settings.gradientEnd.value}_${_settings.showBackdrop}_${_settings.showParticles}',
+      ),
       children: [
         Positioned.fill(
           child: AwaSphere(
@@ -644,12 +646,14 @@ wobbleSpeed: ${_settings.wobbleSpeed.toStringAsFixed(2)}
                     ),
                   ),
                   const SizedBox(height: 12),
+                  // Color.r/g/b return 0.0-1.0 floats, so multiply by 255 for slider display
+                  // and divide by 255 when setting values
                   _buildChannelSlider(
                     'R',
-                    tempColor.r.toDouble(),
+                    tempColor.r * 255,
                     (v) => setState(() {
                       tempColor = tempColor.withValues(
-                        red: v,
+                        red: v / 255,
                         green: tempColor.g,
                         blue: tempColor.b,
                         alpha: tempColor.a,
@@ -658,11 +662,11 @@ wobbleSpeed: ${_settings.wobbleSpeed.toStringAsFixed(2)}
                   ),
                   _buildChannelSlider(
                     'G',
-                    tempColor.g.toDouble(),
+                    tempColor.g * 255,
                     (v) => setState(() {
                       tempColor = tempColor.withValues(
                         red: tempColor.r,
-                        green: v,
+                        green: v / 255,
                         blue: tempColor.b,
                         alpha: tempColor.a,
                       );
@@ -670,12 +674,12 @@ wobbleSpeed: ${_settings.wobbleSpeed.toStringAsFixed(2)}
                   ),
                   _buildChannelSlider(
                     'B',
-                    tempColor.b.toDouble(),
+                    tempColor.b * 255,
                     (v) => setState(() {
                       tempColor = tempColor.withValues(
                         red: tempColor.r,
                         green: tempColor.g,
-                        blue: v,
+                        blue: v / 255,
                         alpha: tempColor.a,
                       );
                     }),
