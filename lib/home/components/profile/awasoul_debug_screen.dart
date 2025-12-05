@@ -371,6 +371,11 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen>
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       children: [
+        // Layer toggle at top
+        _buildLayerToggle('3D Particles Layer', Icons.blur_on, s.enabled,
+            (v) => _settings.update3D((s) => s.copyWith(enabled: v))),
+        const SizedBox(height: 8),
+        
         _buildSection(
           id: '3d_size',
           title: 'Size & Count',
@@ -495,9 +500,148 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen>
           ],
         ),
         
+        // 3D Color Palettes
+        _buildSection(
+          id: '3d_palettes',
+          title: 'Color Palettes',
+          icon: Icons.color_lens,
+          color: Colors.pink,
+          children: [
+            _build3DPaletteGrid(),
+          ],
+        ),
+        
         const SizedBox(height: 40),
       ],
     );
+  }
+  
+  Widget _build3DPaletteGrid() {
+    final t = _theme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Random button for 3D
+        GestureDetector(
+          onTap: _applyRandom3DPalette,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.orange.withValues(alpha: 0.3),
+                  Colors.red.withValues(alpha: 0.3),
+                  Colors.purple.withValues(alpha: 0.3),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: t.border),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.shuffle, size: 18, color: t.text),
+                const SizedBox(width: 8),
+                Text('Random 3D Colors', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: t.text)),
+              ],
+            ),
+          ),
+        ),
+        
+        // 3D specific palettes
+        Wrap(
+          spacing: 8,
+          runSpacing: 10,
+          children: _colorPalettes.map((palette) => _build3DPaletteTile(palette)).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _build3DPaletteTile(_ColorPalette palette) {
+    final t = _theme;
+    return GestureDetector(
+      onTap: () => _apply3DColorPalette(palette.colors),
+      child: Tooltip(
+        message: palette.theory,
+        child: Column(
+          children: [
+            Container(
+              width: 54,
+              height: 28,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: t.border),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(5),
+                child: Row(
+                  children: palette.colors.map((c) => Expanded(
+                    child: Container(color: c),
+                  )).toList(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              palette.name,
+              style: TextStyle(fontSize: 9, color: t.textSecondary),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _apply3DColorPalette(List<Color> colors) {
+    if (colors.length >= 3) {
+      _settings.update3D((s) => s.copyWith(
+        coreColor: _lightenColor(colors[0], 0.3),
+        midColor: colors[1],
+        outerColor: colors[2],
+      ));
+    }
+  }
+
+  void _applyRandom3DPalette() {
+    final random = math.Random();
+    final baseHue = random.nextDouble() * 360;
+    final harmonyType = random.nextInt(5);
+    
+    List<Color> colors;
+    switch (harmonyType) {
+      case 0: // Analogous
+        colors = [
+          HSLColor.fromAHSL(1, baseHue, 0.7, 0.85).toColor(),
+          HSLColor.fromAHSL(1, (baseHue + 30) % 360, 0.7, 0.6).toColor(),
+          HSLColor.fromAHSL(1, (baseHue + 60) % 360, 0.7, 0.5).toColor(),
+        ];
+        break;
+      case 1: // Complementary
+        colors = [
+          HSLColor.fromAHSL(1, baseHue, 0.6, 0.85).toColor(),
+          HSLColor.fromAHSL(1, baseHue, 0.7, 0.6).toColor(),
+          HSLColor.fromAHSL(1, (baseHue + 180) % 360, 0.6, 0.5).toColor(),
+        ];
+        break;
+      case 2: // Triadic
+        colors = [
+          HSLColor.fromAHSL(1, baseHue, 0.6, 0.85).toColor(),
+          HSLColor.fromAHSL(1, (baseHue + 120) % 360, 0.65, 0.6).toColor(),
+          HSLColor.fromAHSL(1, (baseHue + 240) % 360, 0.6, 0.5).toColor(),
+        ];
+        break;
+      default: // Monochromatic warm
+        colors = [
+          HSLColor.fromAHSL(1, baseHue, 0.4, 0.9).toColor(),
+          HSLColor.fromAHSL(1, baseHue, 0.6, 0.65).toColor(),
+          HSLColor.fromAHSL(1, baseHue, 0.7, 0.45).toColor(),
+        ];
+    }
+    
+    _apply3DColorPalette(colors);
   }
 
   // ==========================================================================
@@ -509,6 +653,11 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen>
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       children: [
+        // Layer toggle at top
+        _buildLayerToggle('2D Backdrop Layer', Icons.gradient, s.enabled,
+            (v) => _settings.update2D((s) => s.copyWith(enabled: v))),
+        const SizedBox(height: 8),
+        
         _buildSection(
           id: '2d_size',
           title: 'Size & Count',
@@ -606,22 +755,17 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen>
                 (c) => _settings.update2D((s) => s.copyWith(gradientMid: c))),
             _buildColorRow('Edge', s.gradientEnd,
                 (c) => _settings.update2D((s) => s.copyWith(gradientEnd: c))),
-            const SizedBox(height: 8),
-            _buildPresetButton('Warm Ember', [
-              const Color(0xFFFFA573),
-              const Color(0xFFFF8B7A),
-              const Color(0xFFFF7BC5),
-            ]),
-            _buildPresetButton('Cool Lavender', [
-              const Color(0xFFE8D4F0),
-              const Color(0xFFC4A8D8),
-              const Color(0xFF9B7BB8),
-            ]),
-            _buildPresetButton('Ocean Depths', [
-              const Color(0xFF88D4E8),
-              const Color(0xFF5BA8C8),
-              const Color(0xFF3D7A98),
-            ]),
+          ],
+        ),
+        
+        // 2D Color Palettes
+        _buildSection(
+          id: '2d_palettes',
+          title: 'Color Palettes',
+          icon: Icons.color_lens,
+          color: Colors.pink,
+          children: [
+            _build2DPaletteGrid(),
           ],
         ),
         
@@ -629,54 +773,145 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen>
       ],
     );
   }
+  
+  Widget _build2DPaletteGrid() {
+    final t = _theme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Random button for 2D
+        GestureDetector(
+          onTap: _applyRandom2DPalette,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.cyan.withValues(alpha: 0.3),
+                  Colors.blue.withValues(alpha: 0.3),
+                  Colors.purple.withValues(alpha: 0.3),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: t.border),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.shuffle, size: 18, color: t.text),
+                const SizedBox(width: 8),
+                Text('Random 2D Colors', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: t.text)),
+              ],
+            ),
+          ),
+        ),
+        
+        // 2D specific palettes
+        Wrap(
+          spacing: 8,
+          runSpacing: 10,
+          children: _colorPalettes.map((palette) => _build2DPaletteTile(palette)).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _build2DPaletteTile(_ColorPalette palette) {
+    final t = _theme;
+    return GestureDetector(
+      onTap: () => _apply2DColorPalette(palette.colors),
+      child: Tooltip(
+        message: palette.theory,
+        child: Column(
+          children: [
+            Container(
+              width: 54,
+              height: 28,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: t.border),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(5),
+                child: Row(
+                  children: palette.colors.map((c) => Expanded(
+                    child: Container(color: c),
+                  )).toList(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              palette.name,
+              style: TextStyle(fontSize: 9, color: t.textSecondary),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _apply2DColorPalette(List<Color> colors) {
+    if (colors.length >= 3) {
+      _settings.update2D((s) => s.copyWith(
+        gradientStart: colors[0],
+        gradientMid: colors[1],
+        gradientEnd: colors[2],
+      ));
+    }
+  }
+
+  void _applyRandom2DPalette() {
+    final random = math.Random();
+    final baseHue = random.nextDouble() * 360;
+    final harmonyType = random.nextInt(5);
+    
+    List<Color> colors;
+    switch (harmonyType) {
+      case 0: // Analogous
+        colors = [
+          HSLColor.fromAHSL(1, baseHue, 0.7, 0.7).toColor(),
+          HSLColor.fromAHSL(1, (baseHue + 30) % 360, 0.7, 0.6).toColor(),
+          HSLColor.fromAHSL(1, (baseHue + 60) % 360, 0.7, 0.5).toColor(),
+        ];
+        break;
+      case 1: // Complementary
+        colors = [
+          HSLColor.fromAHSL(1, baseHue, 0.7, 0.7).toColor(),
+          HSLColor.fromAHSL(1, baseHue, 0.6, 0.6).toColor(),
+          HSLColor.fromAHSL(1, (baseHue + 180) % 360, 0.6, 0.5).toColor(),
+        ];
+        break;
+      case 2: // Triadic
+        colors = [
+          HSLColor.fromAHSL(1, baseHue, 0.7, 0.7).toColor(),
+          HSLColor.fromAHSL(1, (baseHue + 120) % 360, 0.65, 0.6).toColor(),
+          HSLColor.fromAHSL(1, (baseHue + 240) % 360, 0.6, 0.5).toColor(),
+        ];
+        break;
+      default: // Monochromatic
+        colors = [
+          HSLColor.fromAHSL(1, baseHue, 0.5, 0.75).toColor(),
+          HSLColor.fromAHSL(1, baseHue, 0.6, 0.55).toColor(),
+          HSLColor.fromAHSL(1, baseHue, 0.7, 0.4).toColor(),
+        ];
+    }
+    
+    _apply2DColorPalette(colors);
+  }
 
   // ==========================================================================
-  // SPHERE SETTINGS
+  // SPHERE SETTINGS (Global / Canvas settings only)
   // ==========================================================================
   Widget _buildSphereSettings() {
     final s = _settings.sphere;
-    final l3d = _settings.layer3D;
-    final l2d = _settings.layer2D;
     
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       children: [
-        // Layer toggles - prominent at top
-        _buildSection(
-          id: 'sphere_layers',
-          title: 'Layers',
-          icon: Icons.layers,
-          color: Colors.blue,
-          children: [
-            _buildLayerToggle('3D Particles', Icons.blur_on, l3d.enabled,
-                (v) => _settings.update3D((s) => s.copyWith(enabled: v))),
-            _buildLayerToggle('2D Backdrop', Icons.gradient, l2d.enabled,
-                (v) => _settings.update2D((s) => s.copyWith(enabled: v))),
-          ],
-        ),
-        
-        // Size controls
-        _buildSection(
-          id: 'sphere_size',
-          title: 'Sizes',
-          icon: Icons.photo_size_select_large,
-          color: Colors.indigo,
-          children: [
-            Text('3D Particles', style: TextStyle(fontSize: 11, color: _theme.textMuted, fontWeight: FontWeight.w600)),
-            _buildSlider('Count', l3d.particleCount.toDouble(), 50, 800,
-                (v) => _settings.update3D((s) => s.copyWith(particleCount: v.round()))),
-            _buildSlider('Size', l3d.particleSize, 1, 12,
-                (v) => _settings.update3D((s) => s.copyWith(particleSize: v))),
-            const SizedBox(height: 8),
-            Text('2D Backdrop', style: TextStyle(fontSize: 11, color: _theme.textMuted, fontWeight: FontWeight.w600)),
-            _buildSlider('Dots', l2d.dotCount.toDouble(), 50, 500,
-                (v) => _settings.update2D((s) => s.copyWith(dotCount: v.round()))),
-            _buildSlider('Size', l2d.dotSize, 1, 12,
-                (v) => _settings.update2D((s) => s.copyWith(dotSize: v))),
-          ],
-        ),
-        
-        // Background section
+        // Background section - this is the main canvas
         _buildSection(
           id: 'sphere_bg',
           title: 'Background',
@@ -692,17 +927,7 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen>
           ],
         ),
         
-        // Color palettes based on color theory
-        _buildSection(
-          id: 'sphere_palettes',
-          title: 'Color Palettes',
-          icon: Icons.palette,
-          color: Colors.pink,
-          children: [
-            _buildColorPaletteGrid(),
-          ],
-        ),
-        
+        // Global breathing/scale
         _buildSection(
           id: 'sphere_breath',
           title: 'Breathing',
@@ -989,150 +1214,6 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen>
     _ColorPalette('Candy', [Color(0xFFFF6FD8), Color(0xFF00E4FF), Color(0xFFFFFB7D)], 'Sweet pop'),
     _ColorPalette('Cosmos', [Color(0xFFE8D5F2), Color(0xFF9B72CF), Color(0xFF3D1F5C)], 'Deep space'),
   ];
-
-  Widget _buildColorPaletteGrid() {
-    final t = _theme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Random button
-        GestureDetector(
-          onTap: _applyRandomPalette,
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.purple.withValues(alpha: 0.3),
-                  Colors.blue.withValues(alpha: 0.3),
-                  Colors.teal.withValues(alpha: 0.3),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: t.border),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.shuffle, size: 18, color: t.text),
-                const SizedBox(width: 8),
-                Text('Random Palette', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: t.text)),
-              ],
-            ),
-          ),
-        ),
-        
-        // Palette grid
-        Wrap(
-          spacing: 8,
-          runSpacing: 10,
-          children: _colorPalettes.map((palette) => _buildPaletteTile(palette)).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPaletteTile(_ColorPalette palette) {
-    final t = _theme;
-    return GestureDetector(
-      onTap: () => _applyColorPalette(palette.colors),
-      child: Tooltip(
-        message: palette.theory,
-        child: Column(
-          children: [
-            Container(
-              width: 54,
-              height: 28,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: t.border),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(5),
-                child: Row(
-                  children: palette.colors.map((c) => Expanded(
-                    child: Container(color: c),
-                  )).toList(),
-                ),
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              palette.name,
-              style: TextStyle(fontSize: 9, color: t.textSecondary),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _applyColorPalette(List<Color> colors) {
-    if (colors.length >= 3) {
-      _settings.update3D((s) => s.copyWith(
-        coreColor: _lightenColor(colors[0], 0.3),
-        midColor: colors[1],
-        outerColor: colors[2],
-      ));
-      _settings.update2D((s) => s.copyWith(
-        gradientStart: colors[0],
-        gradientMid: colors[1],
-        gradientEnd: colors[2],
-      ));
-    }
-  }
-
-  void _applyRandomPalette() {
-    final random = math.Random();
-    
-    // Generate a random base hue
-    final baseHue = random.nextDouble() * 360;
-    
-    // Random color harmony type
-    final harmonyType = random.nextInt(5);
-    
-    List<Color> colors;
-    switch (harmonyType) {
-      case 0: // Analogous
-        colors = [
-          HSLColor.fromAHSL(1, baseHue, 0.7, 0.7).toColor(),
-          HSLColor.fromAHSL(1, (baseHue + 30) % 360, 0.7, 0.6).toColor(),
-          HSLColor.fromAHSL(1, (baseHue + 60) % 360, 0.7, 0.5).toColor(),
-        ];
-        break;
-      case 1: // Complementary
-        colors = [
-          HSLColor.fromAHSL(1, baseHue, 0.7, 0.7).toColor(),
-          HSLColor.fromAHSL(1, baseHue, 0.6, 0.6).toColor(),
-          HSLColor.fromAHSL(1, (baseHue + 180) % 360, 0.6, 0.5).toColor(),
-        ];
-        break;
-      case 2: // Triadic
-        colors = [
-          HSLColor.fromAHSL(1, baseHue, 0.7, 0.7).toColor(),
-          HSLColor.fromAHSL(1, (baseHue + 120) % 360, 0.65, 0.6).toColor(),
-          HSLColor.fromAHSL(1, (baseHue + 240) % 360, 0.6, 0.5).toColor(),
-        ];
-        break;
-      case 3: // Split-complementary
-        colors = [
-          HSLColor.fromAHSL(1, baseHue, 0.7, 0.7).toColor(),
-          HSLColor.fromAHSL(1, (baseHue + 150) % 360, 0.65, 0.55).toColor(),
-          HSLColor.fromAHSL(1, (baseHue + 210) % 360, 0.6, 0.5).toColor(),
-        ];
-        break;
-      default: // Monochromatic
-        colors = [
-          HSLColor.fromAHSL(1, baseHue, 0.5, 0.85).toColor(),
-          HSLColor.fromAHSL(1, baseHue, 0.6, 0.6).toColor(),
-          HSLColor.fromAHSL(1, baseHue, 0.7, 0.4).toColor(),
-        ];
-    }
-    
-    _applyColorPalette(colors);
-  }
 
   Color _lightenColor(Color color, double amount) {
     final hsl = HSLColor.fromColor(color);
@@ -1443,44 +1524,6 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen>
     Color(0xFF88D4E8),
     Color(0xFFFFFAF0),
   ];
-
-  Widget _buildPresetButton(String name, List<Color> colors) {
-    final t = _theme;
-    return GestureDetector(
-      onTap: () {
-        _settings.update2D((s) => s.copyWith(
-          gradientStart: colors[0],
-          gradientMid: colors[1],
-          gradientEnd: colors[2],
-        ));
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: t.surfaceAlt,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: t.border),
-        ),
-        child: Row(
-          children: [
-            ...colors.map((c) => Container(
-              width: 16,
-              height: 16,
-              margin: const EdgeInsets.only(right: 4),
-              decoration: BoxDecoration(
-                color: c,
-                shape: BoxShape.circle,
-                border: Border.all(color: t.border, width: 0.5),
-              ),
-            )),
-            const SizedBox(width: 8),
-            Text(name, style: TextStyle(fontSize: 12, color: t.textSecondary)),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildPresetTile(String name, String desc, VoidCallback onTap) {
     final t = _theme;
