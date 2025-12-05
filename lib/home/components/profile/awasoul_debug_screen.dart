@@ -1557,6 +1557,9 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen>
 
   Future<void> _openColorPicker(String label, Color initialColor, ValueChanged<Color> onChanged) async {
     Color tempColor = initialColor;
+    final hexController = TextEditingController(text: _colorToHex(initialColor));
+    String? hexError;
+    
     await showDialog(
       context: context,
       builder: (context) {
@@ -1565,28 +1568,109 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen>
           title: Text('$label color', style: const TextStyle(color: Colors.white, fontSize: 16)),
           content: StatefulBuilder(
             builder: (context, setState) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    height: 40,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: tempColor,
-                      borderRadius: BorderRadius.circular(8),
+              return SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Color preview
+                    Container(
+                      height: 50,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: tempColor,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: Center(
+                        child: Text(
+                          _colorToHex(tempColor),
+                          style: TextStyle(
+                            color: _getContrastColor(tempColor),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildChannelSlider('R', tempColor.r * 255, (v) => setState(() {
-                    tempColor = tempColor.withValues(red: v / 255, green: tempColor.g, blue: tempColor.b, alpha: tempColor.a);
-                  })),
-                  _buildChannelSlider('G', tempColor.g * 255, (v) => setState(() {
-                    tempColor = tempColor.withValues(red: tempColor.r, green: v / 255, blue: tempColor.b, alpha: tempColor.a);
-                  })),
-                  _buildChannelSlider('B', tempColor.b * 255, (v) => setState(() {
-                    tempColor = tempColor.withValues(red: tempColor.r, green: tempColor.g, blue: v / 255, alpha: tempColor.a);
-                  })),
-                ],
+                    const SizedBox(height: 16),
+                    
+                    // HEX input
+                    TextField(
+                      controller: hexController,
+                      style: const TextStyle(color: Colors.white, fontSize: 16, fontFamily: 'monospace'),
+                      decoration: InputDecoration(
+                        labelText: 'HEX Color',
+                        labelStyle: const TextStyle(color: Colors.white54),
+                        hintText: '#FF6A14',
+                        hintStyle: const TextStyle(color: Colors.white24),
+                        errorText: hexError,
+                        prefixIcon: const Icon(Icons.tag, color: Colors.orange, size: 20),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.1),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Colors.orange),
+                        ),
+                      ),
+                      textCapitalization: TextCapitalization.characters,
+                      onChanged: (value) {
+                        final parsed = _parseHexColor(value);
+                        if (parsed != null) {
+                          setState(() {
+                            tempColor = parsed;
+                            hexError = null;
+                          });
+                        } else if (value.isNotEmpty) {
+                          setState(() {
+                            hexError = 'Use format: #RRGGBB or RRGGBB';
+                          });
+                        }
+                      },
+                      onSubmitted: (value) {
+                        final parsed = _parseHexColor(value);
+                        if (parsed != null) {
+                          Navigator.of(context).pop();
+                          onChanged(parsed);
+                        }
+                      },
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    const Divider(color: Colors.white24),
+                    const SizedBox(height: 8),
+                    
+                    // Quick color swatches
+                    Text('Quick Colors', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ..._colorPresets.map((c) => _buildColorSwatch(c, tempColor, (color) {
+                          setState(() {
+                            tempColor = color;
+                            hexController.text = _colorToHex(color);
+                            hexError = null;
+                          });
+                        })),
+                        // Sunset palette highlights
+                        _buildColorSwatch(const Color(0xFFFF6A14), tempColor, (color) {
+                          setState(() { tempColor = color; hexController.text = _colorToHex(color); });
+                        }),
+                        _buildColorSwatch(const Color(0xFFF91A4D), tempColor, (color) {
+                          setState(() { tempColor = color; hexController.text = _colorToHex(color); });
+                        }),
+                        _buildColorSwatch(const Color(0xFF6A05B9), tempColor, (color) {
+                          setState(() { tempColor = color; hexController.text = _colorToHex(color); });
+                        }),
+                      ],
+                    ),
+                  ],
+                ),
               );
             },
           ),
@@ -1607,27 +1691,44 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen>
         );
       },
     );
+    hexController.dispose();
   }
-
-  Widget _buildChannelSlider(String label, double value, ValueChanged<double> onChanged) {
-    return Row(
-      children: [
-        SizedBox(width: 16, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white70))),
-        Expanded(
-          child: Slider(
-            value: value.clamp(0, 255),
-            min: 0,
-            max: 255,
-            activeColor: Colors.orange,
-            inactiveColor: Colors.white24,
-            onChanged: onChanged,
+  
+  Widget _buildColorSwatch(Color color, Color selected, ValueChanged<Color> onTap) {
+    final isSelected = color.toARGB32() == selected.toARGB32();
+    return GestureDetector(
+      onTap: () => onTap(color),
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isSelected ? Colors.white : Colors.white24,
+            width: isSelected ? 2 : 1,
           ),
+          boxShadow: isSelected ? [
+            BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 8),
+          ] : null,
         ),
-        SizedBox(
-          width: 32,
-          child: Text(value.toInt().toString(), textAlign: TextAlign.right, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-        ),
-      ],
+      ),
     );
+  }
+  
+  String _colorToHex(Color color) {
+    return '#${(color.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
+  }
+  
+  Color? _parseHexColor(String input) {
+    var hex = input.trim().toUpperCase();
+    if (hex.startsWith('#')) hex = hex.substring(1);
+    if (hex.length == 6) {
+      final value = int.tryParse(hex, radix: 16);
+      if (value != null) {
+        return Color(0xFF000000 | value);
+      }
+    }
+    return null;
   }
 }

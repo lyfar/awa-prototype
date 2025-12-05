@@ -334,6 +334,19 @@ class _AwaSphereState extends State<AwaSphere>
             blinkIntensity: settings?.layer2D.blinkIntensity ?? 0.25,
             glowIntensityBackdrop: settings?.layer2D.glowIntensity ?? 0.5,
             glowSizeBackdrop: settings?.layer2D.glowSize ?? 2.0,
+            // New 2D settings
+            backdrop2DSizeVariation: settings?.layer2D.sizeVariation ?? 0.3,
+            backdrop2DCenterScale: settings?.layer2D.centerScale ?? 0.8,
+            backdrop2DEdgeFade: settings?.layer2D.edgeFade ?? 0.9,
+            backdrop2DCenterOpacity: settings?.layer2D.centerOpacity ?? 0.3,
+            backdrop2DInnerGlow: settings?.layer2D.innerGlow ?? 0.6,
+            backdrop2DRotationSpeed: settings?.layer2D.rotationSpeed ?? 0.0,
+            backdrop2DSpiralTightness: settings?.layer2D.spiralTightness ?? 1.0,
+            backdrop2DSpiralExpansion: settings?.layer2D.spiralExpansion ?? 0.0,
+            backdrop2DMotionPattern:
+                settings?.layer2D.motionPattern ?? MotionPattern.gentle,
+            backdrop2DDriftSpeed: settings?.layer2D.driftSpeed ?? 0.3,
+            backdrop2DDriftIntensity: settings?.layer2D.driftIntensity ?? 0.5,
           );
 
           // Apply bloom effect if enabled
@@ -425,6 +438,18 @@ class _AwaSphereParticles extends CustomPainter {
   final double blinkIntensity;
   final double glowIntensityBackdrop;
   final double glowSizeBackdrop;
+  // New 2D settings
+  final double backdrop2DSizeVariation;
+  final double backdrop2DCenterScale;
+  final double backdrop2DEdgeFade;
+  final double backdrop2DCenterOpacity;
+  final double backdrop2DInnerGlow;
+  final double backdrop2DRotationSpeed;
+  final double backdrop2DSpiralTightness;
+  final double backdrop2DSpiralExpansion;
+  final MotionPattern backdrop2DMotionPattern;
+  final double backdrop2DDriftSpeed;
+  final double backdrop2DDriftIntensity;
 
   _AwaSphereParticles({
     required this.rotationX,
@@ -468,6 +493,18 @@ class _AwaSphereParticles extends CustomPainter {
     this.blinkIntensity = 0.25,
     this.glowIntensityBackdrop = 0.5,
     this.glowSizeBackdrop = 2.0,
+    // New 2D settings
+    this.backdrop2DSizeVariation = 0.3,
+    this.backdrop2DCenterScale = 0.8,
+    this.backdrop2DEdgeFade = 0.9,
+    this.backdrop2DCenterOpacity = 0.3,
+    this.backdrop2DInnerGlow = 0.6,
+    this.backdrop2DRotationSpeed = 0.0,
+    this.backdrop2DSpiralTightness = 1.0,
+    this.backdrop2DSpiralExpansion = 0.0,
+    this.backdrop2DMotionPattern = MotionPattern.gentle,
+    this.backdrop2DDriftSpeed = 0.3,
+    this.backdrop2DDriftIntensity = 0.5,
   });
 
   @override
@@ -553,8 +590,15 @@ class _AwaSphereParticles extends CustomPainter {
 
   void _drawDarkSphere(Canvas canvas, Offset center, double radius) {
     // 2D Phyllotaxis spiral backdrop with blurred gradient dots
-    const goldenAngle = 2.39996322972865332;
-    final backdropRadius = radius * 1.08;
+    final goldenAngle = 2.39996322972865332 * backdrop2DSpiralTightness;
+
+    // Apply spiral expansion (breathing)
+    final expansionFactor =
+        1.0 + math.sin(sparklePhase * 0.3) * backdrop2DSpiralExpansion;
+    final backdropRadius = radius * 1.08 * expansionFactor;
+
+    // Apply rotation
+    final rotationOffset = sparklePhase * backdrop2DRotationSpeed;
 
     // Use configurable gradient colors or defaults
     final gradStart = backdropGradientStart ?? const Color(0xFFFFA573);
@@ -565,10 +609,101 @@ class _AwaSphereParticles extends CustomPainter {
     for (int i = 0; i < backdropDotCount; i++) {
       final t = i / backdropDotCount;
       final r = backdropRadius * math.sqrt(t);
-      final theta = goldenAngle * i;
+      final theta = goldenAngle * i + rotationOffset;
 
-      final x = center.dx + r * math.cos(theta);
-      final y = center.dy + r * math.sin(theta);
+      // Calculate base position
+      double x = center.dx + r * math.cos(theta);
+      double y = center.dy + r * math.sin(theta);
+
+      // Apply 2D motion pattern
+      double driftX = 0, driftY = 0;
+      switch (backdrop2DMotionPattern) {
+        case MotionPattern.gentle:
+          driftX =
+              math.sin(sparklePhase * 0.2 * backdrop2DDriftSpeed + i * 0.1) *
+              backdrop2DDriftIntensity;
+          driftY =
+              math.cos(sparklePhase * 0.18 * backdrop2DDriftSpeed + i * 0.12) *
+              backdrop2DDriftIntensity;
+          break;
+        case MotionPattern.organic:
+          driftX =
+              math.sin(sparklePhase * 0.15 * backdrop2DDriftSpeed + i * 0.08) *
+                  backdrop2DDriftIntensity +
+              math.sin(sparklePhase * 0.3 * backdrop2DDriftSpeed + i * 0.2) *
+                  backdrop2DDriftIntensity *
+                  0.3;
+          driftY =
+              math.cos(sparklePhase * 0.12 * backdrop2DDriftSpeed + i * 0.1) *
+                  backdrop2DDriftIntensity +
+              math.cos(sparklePhase * 0.25 * backdrop2DDriftSpeed + i * 0.15) *
+                  backdrop2DDriftIntensity *
+                  0.3;
+          break;
+        case MotionPattern.pulsing:
+          final pulseAmt =
+              math.sin(sparklePhase * 0.4 * backdrop2DDriftSpeed) *
+              backdrop2DDriftIntensity;
+          driftX = (x - center.dx) / r * pulseAmt * 2;
+          driftY = (y - center.dy) / r * pulseAmt * 2;
+          break;
+        case MotionPattern.swirl:
+          final swirlAngle = sparklePhase * 0.1 * backdrop2DDriftSpeed;
+          final dx = x - center.dx;
+          final dy = y - center.dy;
+          driftX =
+              dx * math.cos(swirlAngle * 0.1) -
+              dy * math.sin(swirlAngle * 0.1) -
+              dx;
+          driftY =
+              dx * math.sin(swirlAngle * 0.1) +
+              dy * math.cos(swirlAngle * 0.1) -
+              dy;
+          driftX *= backdrop2DDriftIntensity * 0.5;
+          driftY *= backdrop2DDriftIntensity * 0.5;
+          break;
+        case MotionPattern.jitter:
+          driftX =
+              math.sin(sparklePhase * 2 * backdrop2DDriftSpeed + i * 1.5) *
+              backdrop2DDriftIntensity *
+              0.3;
+          driftY =
+              math.cos(sparklePhase * 1.8 * backdrop2DDriftSpeed + i * 1.3) *
+              backdrop2DDriftIntensity *
+              0.3;
+          break;
+        case MotionPattern.breathe:
+          final breathe = math.sin(sparklePhase * 0.1 * backdrop2DDriftSpeed);
+          driftX =
+              (x - center.dx) /
+              backdropRadius *
+              breathe *
+              backdrop2DDriftIntensity *
+              5;
+          driftY =
+              (y - center.dy) /
+              backdropRadius *
+              breathe *
+              backdrop2DDriftIntensity *
+              5;
+          break;
+        case MotionPattern.float:
+          driftX =
+              math.sin(sparklePhase * 0.15 * backdrop2DDriftSpeed + i * 0.1) *
+              backdrop2DDriftIntensity *
+              0.5;
+          driftY =
+              -((math.sin(
+                    sparklePhase * 0.08 * backdrop2DDriftSpeed + i * 0.05,
+                  )).abs()) *
+                  backdrop2DDriftIntensity +
+              math.cos(sparklePhase * 0.12 * backdrop2DDriftSpeed + i * 0.08) *
+                  backdrop2DDriftIntensity *
+                  0.3;
+          break;
+      }
+      x += driftX;
+      y += driftY;
 
       // Distance ratio for gradient
       final distRatio = r / backdropRadius;
@@ -592,14 +727,12 @@ class _AwaSphereParticles extends CustomPainter {
           blinkFactor = 1.0 - blinkIntensity + blinkPhase * blinkIntensity;
           break;
         case FlickerMode.candle:
-          // Fire-like irregular flicker
           final noise1 = math.sin(sparklePhase * blinkSpeed * 2.5 + i * 0.2);
           final noise2 = math.cos(sparklePhase * blinkSpeed * 1.7 + i * 0.15);
           blinkFactor =
               1.0 - blinkIntensity * 0.5 + (noise1 * noise2) * blinkIntensity;
           break;
         case FlickerMode.sparkle:
-          // Random sharp flashes
           final sparkleVal = math.sin(sparklePhase * blinkSpeed * 4 + i * 1.7);
           blinkFactor =
               sparkleVal > 0.7
@@ -607,36 +740,54 @@ class _AwaSphereParticles extends CustomPainter {
                   : 1.0 - blinkIntensity * 0.3;
           break;
         case FlickerMode.sync:
-          // All blink together
           final syncPhase = math.sin(sparklePhase * blinkSpeed);
           blinkFactor = 1.0 - blinkIntensity + syncPhase * blinkIntensity;
           break;
         case FlickerMode.wave:
-          // Wave propagates from center
           final waveOffset = distRatio * 3;
           final wavePhase = math.sin(sparklePhase * blinkSpeed - waveOffset);
           blinkFactor = 1.0 - blinkIntensity + wavePhase * blinkIntensity;
           break;
       }
 
-      // Dot size with slight variation - use configurable backdropDotSize
-      final sizeVar = math.sin(i * 0.5) * 0.3;
-      final dotSize =
-          (backdropDotSize + (1 - distRatio) * backdropDotSize * 0.8) *
-          (1 + sizeVar * 0.2);
+      // Size variation based on settings
+      final sizeVar = math.sin(i * 0.5) * backdrop2DSizeVariation;
 
-      // Opacity with fade at edges and blink - use configurable backdropOpacity
+      // Center scale - dots bigger in center
+      final centerScaleFactor =
+          1.0 + (1.0 - distRatio) * (backdrop2DCenterScale - 1.0);
+
+      final dotSize = backdropDotSize * (1 + sizeVar) * centerScaleFactor;
+
+      // Opacity with edge fade and center boost
       double opacity;
-      if (distRatio < 0.2) {
-        opacity = distRatio * 4;
-      } else if (distRatio > 0.9) {
-        opacity = (1 - distRatio) * 8;
-      } else {
-        opacity = backdropOpacity;
-      }
-      opacity *= blinkFactor.clamp(0.0, 1.5);
 
-      // Large soft blur glow - configurable
+      // Edge fade - fade out at edges based on edgeFade setting
+      final edgeFadeStart =
+          1.0 -
+          backdrop2DEdgeFade * 0.3; // Start fading later with higher values
+      if (distRatio < 0.15) {
+        opacity = distRatio / 0.15; // Fade in from center
+      } else if (distRatio > edgeFadeStart) {
+        opacity = 1.0 - (distRatio - edgeFadeStart) / (1.0 - edgeFadeStart);
+        opacity = opacity.clamp(0.0, 1.0);
+      } else {
+        opacity = 1.0;
+      }
+
+      // Apply base opacity
+      opacity *= backdropOpacity;
+
+      // Center opacity boost
+      if (distRatio < 0.4) {
+        opacity += backdrop2DCenterOpacity * (1.0 - distRatio / 0.4);
+      }
+
+      // Apply blink
+      opacity *= blinkFactor.clamp(0.0, 1.5);
+      opacity = opacity.clamp(0.0, 1.0);
+
+      // Outer glow
       final outerGlowSize = dotSize * glowSizeBackdrop;
       final glowPaint =
           Paint()
@@ -648,6 +799,20 @@ class _AwaSphereParticles extends CustomPainter {
               4 + glowSizeBackdrop * 2,
             );
       canvas.drawCircle(Offset(x, y), outerGlowSize, glowPaint);
+
+      // Inner glow layer (new!)
+      if (backdrop2DInnerGlow > 0) {
+        final innerGlowPaint =
+            Paint()
+              ..color = dotColor.withOpacity(
+                opacity * backdrop2DInnerGlow * 0.4,
+              )
+              ..maskFilter = MaskFilter.blur(
+                BlurStyle.normal,
+                2 + glowSizeBackdrop * 0.5,
+              );
+        canvas.drawCircle(Offset(x, y), dotSize * 1.1, innerGlowPaint);
+      }
 
       // Medium glow layer
       final midGlowPaint =
@@ -678,8 +843,8 @@ class _AwaSphereParticles extends CustomPainter {
         Paint()
           ..shader = RadialGradient(
             colors: [
-              const Color(0xFFFFF5F0).withOpacity(0.3),
-              const Color(0xFFFAE8E0).withOpacity(0.15),
+              gradStart.withOpacity(0.2 + backdrop2DCenterOpacity * 0.2),
+              gradMid.withOpacity(0.1),
               Colors.transparent,
             ],
             stops: const [0.0, 0.5, 1.0],
