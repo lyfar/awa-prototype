@@ -540,46 +540,124 @@ class AwaSoulSettings extends ChangeNotifier {
   }
   
   /// Export settings as formatted string
+  /// Helper to convert color to hex string
+  String _colorToHex(Color c) => '#${c.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
+
   String exportSettings() {
     return '''
 AwaSoul Settings Export
 =======================
+
+// ==========================================
 // 3D PARTICLES
-enabled: ${_layer3D.enabled}
-particleCount: ${_layer3D.particleCount}
-particleSize: ${_layer3D.particleSize.toStringAsFixed(2)}
-sizeVariation: ${_layer3D.sizeVariation.toStringAsFixed(2)}
-emissiveIntensity: ${_layer3D.emissiveIntensity.toStringAsFixed(2)}
-coreIntensity: ${_layer3D.coreIntensity.toStringAsFixed(2)}
-glowRadius: ${_layer3D.glowRadius.toStringAsFixed(2)}
-glowSoftness: ${_layer3D.glowSoftness.toStringAsFixed(2)}
-haloOpacity: ${_layer3D.haloOpacity.toStringAsFixed(2)}
-motionPattern: ${_layer3D.motionPattern.name}
-driftSpeed: ${_layer3D.driftSpeed.toStringAsFixed(2)}
-wiggleStyle: ${_layer3D.wiggleStyle.name}
-wiggleSpeed: ${_layer3D.wiggleSpeed.toStringAsFixed(2)}
-flickerMode: ${_layer3D.flickerMode.name}
-flickerSpeed: ${_layer3D.flickerSpeed.toStringAsFixed(2)}
-pulseSpeed: ${_layer3D.pulseSpeed.toStringAsFixed(2)}
-enableBloom: ${_layer3D.enableBloom}
-bloomIntensity: ${_layer3D.bloomIntensity.toStringAsFixed(2)}
+// ==========================================
 
+// VISIBILITY
+3d.enabled: ${_layer3D.enabled}
+
+// SIZE
+3d.particleCount: ${_layer3D.particleCount}
+3d.particleSize: ${_layer3D.particleSize.toStringAsFixed(2)}
+3d.sizeVariation: ${_layer3D.sizeVariation.toStringAsFixed(2)}
+3d.depthScaling: ${_layer3D.depthScaling.toStringAsFixed(2)}
+
+// LIGHT / EMISSIVE
+3d.emissiveIntensity: ${_layer3D.emissiveIntensity.toStringAsFixed(2)}
+3d.coreIntensity: ${_layer3D.coreIntensity.toStringAsFixed(2)}
+3d.glowRadius: ${_layer3D.glowRadius.toStringAsFixed(2)}
+3d.glowSoftness: ${_layer3D.glowSoftness.toStringAsFixed(2)}
+3d.haloOpacity: ${_layer3D.haloOpacity.toStringAsFixed(2)}
+3d.additiveBlending: ${_layer3D.additiveBlending}
+
+// COLORS
+3d.coreColor: ${_colorToHex(_layer3D.coreColor)}
+3d.midColor: ${_colorToHex(_layer3D.midColor)}
+3d.outerColor: ${_colorToHex(_layer3D.outerColor)}
+3d.colorTemperature: ${_layer3D.colorTemperature.toStringAsFixed(2)}
+3d.saturation: ${_layer3D.saturation.toStringAsFixed(2)}
+
+// MOTION
+3d.motionPattern: ${_layer3D.motionPattern.name}
+3d.driftSpeed: ${_layer3D.driftSpeed.toStringAsFixed(2)}
+3d.driftIntensity: ${_layer3D.driftIntensity.toStringAsFixed(2)}
+
+// WIGGLE
+3d.wiggleStyle: ${_layer3D.wiggleStyle.name}
+3d.wiggleSpeed: ${_layer3D.wiggleSpeed.toStringAsFixed(2)}
+3d.wiggleIntensity: ${_layer3D.wiggleIntensity.toStringAsFixed(2)}
+
+// FLICKER
+3d.flickerMode: ${_layer3D.flickerMode.name}
+3d.flickerSpeed: ${_layer3D.flickerSpeed.toStringAsFixed(2)}
+3d.flickerIntensity: ${_layer3D.flickerIntensity.toStringAsFixed(2)}
+
+// PULSE
+3d.pulseSpeed: ${_layer3D.pulseSpeed.toStringAsFixed(2)}
+3d.pulseIntensity: ${_layer3D.pulseIntensity.toStringAsFixed(2)}
+3d.syncPulse: ${_layer3D.syncPulse}
+
+// BLOOM
+3d.enableBloom: ${_layer3D.enableBloom}
+3d.bloomIntensity: ${_layer3D.bloomIntensity.toStringAsFixed(2)}
+3d.bloomRadius: ${_layer3D.bloomRadius.toStringAsFixed(2)}
+
+// ==========================================
 // 2D BACKDROP
-enabled: ${_layer2D.enabled}
-dotCount: ${_layer2D.dotCount}
-dotSize: ${_layer2D.dotSize.toStringAsFixed(2)}
-opacity: ${_layer2D.opacity.toStringAsFixed(2)}
-glowIntensity: ${_layer2D.glowIntensity.toStringAsFixed(2)}
-gradientStart: 0x${_layer2D.gradientStart.value.toRadixString(16).toUpperCase()}
-gradientMid: 0x${_layer2D.gradientMid.value.toRadixString(16).toUpperCase()}
-gradientEnd: 0x${_layer2D.gradientEnd.value.toRadixString(16).toUpperCase()}
-motionPattern: ${_layer2D.motionPattern.name}
-blinkMode: ${_layer2D.blinkMode.name}
-blinkSpeed: ${_layer2D.blinkSpeed.toStringAsFixed(2)}
+// ==========================================
 
-// SPHERE
-breathingSpeed: ${_sphere.breathingSpeed.toStringAsFixed(2)}
-breathingIntensity: ${_sphere.breathingIntensity.toStringAsFixed(2)}
+// VISIBILITY
+2d.enabled: ${_layer2D.enabled}
+
+// SIZE
+2d.dotCount: ${_layer2D.dotCount}
+2d.dotSize: ${_layer2D.dotSize.toStringAsFixed(2)}
+2d.sizeVariation: ${_layer2D.sizeVariation.toStringAsFixed(2)}
+2d.centerScale: ${_layer2D.centerScale.toStringAsFixed(2)}
+2d.edgeFade: ${_layer2D.edgeFade.toStringAsFixed(2)}
+
+// OPACITY
+2d.opacity: ${_layer2D.opacity.toStringAsFixed(2)}
+2d.centerOpacity: ${_layer2D.centerOpacity.toStringAsFixed(2)}
+
+// LIGHT / GLOW
+2d.glowIntensity: ${_layer2D.glowIntensity.toStringAsFixed(2)}
+2d.glowSize: ${_layer2D.glowSize.toStringAsFixed(2)}
+2d.innerGlow: ${_layer2D.innerGlow.toStringAsFixed(2)}
+
+// COLORS
+2d.gradientStart: ${_colorToHex(_layer2D.gradientStart)}
+2d.gradientMid: ${_colorToHex(_layer2D.gradientMid)}
+2d.gradientEnd: ${_colorToHex(_layer2D.gradientEnd)}
+
+// MOTION
+2d.motionPattern: ${_layer2D.motionPattern.name}
+2d.driftSpeed: ${_layer2D.driftSpeed.toStringAsFixed(2)}
+2d.driftIntensity: ${_layer2D.driftIntensity.toStringAsFixed(2)}
+2d.rotationSpeed: ${_layer2D.rotationSpeed.toStringAsFixed(2)}
+
+// BLINK
+2d.blinkMode: ${_layer2D.blinkMode.name}
+2d.blinkSpeed: ${_layer2D.blinkSpeed.toStringAsFixed(2)}
+2d.blinkIntensity: ${_layer2D.blinkIntensity.toStringAsFixed(2)}
+2d.syncBlink: ${_layer2D.syncBlink}
+
+// SPIRAL
+2d.spiralTightness: ${_layer2D.spiralTightness.toStringAsFixed(2)}
+2d.spiralExpansion: ${_layer2D.spiralExpansion.toStringAsFixed(2)}
+
+// ==========================================
+// SPHERE (GLOBAL)
+// ==========================================
+
+// BREATHING
+sphere.breathingSpeed: ${_sphere.breathingSpeed.toStringAsFixed(2)}
+sphere.breathingIntensity: ${_sphere.breathingIntensity.toStringAsFixed(2)}
+sphere.baseScale: ${_sphere.baseScale.toStringAsFixed(2)}
+
+// BACKGROUND
+sphere.backgroundPreset: ${_sphere.backgroundPreset.name}
+sphere.customBackgroundColor: ${_colorToHex(_sphere.customBackgroundColor)}
+sphere.backgroundColor: ${_colorToHex(_sphere.backgroundColor)}
 ''';
   }
 }
