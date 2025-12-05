@@ -319,6 +319,21 @@ class _AwaSphereState extends State<AwaSphere>
             additiveBlending:
                 settings?.additiveBlending ?? widget.additiveBlending,
             haloOpacity: settings?.haloOpacity ?? widget.haloOpacity,
+            // New motion settings from layer3D
+            motionPattern:
+                settings?.layer3D.motionPattern ?? MotionPattern.gentle,
+            wiggleStyle: settings?.layer3D.wiggleStyle ?? WiggleStyle.subtle,
+            flickerMode: settings?.layer3D.flickerMode ?? FlickerMode.gentle,
+            driftIntensity: settings?.layer3D.driftIntensity ?? 1.5,
+            wiggleIntensity: settings?.layer3D.wiggleIntensity ?? 0.12,
+            flickerIntensity: settings?.layer3D.flickerIntensity ?? 0.15,
+            sizeVariation: settings?.layer3D.sizeVariation ?? 0.5,
+            // 2D layer settings
+            blinkMode: settings?.layer2D.blinkMode ?? FlickerMode.gentle,
+            blinkSpeed: settings?.layer2D.blinkSpeed ?? 0.6,
+            blinkIntensity: settings?.layer2D.blinkIntensity ?? 0.25,
+            glowIntensityBackdrop: settings?.layer2D.glowIntensity ?? 0.5,
+            glowSizeBackdrop: settings?.layer2D.glowSize ?? 2.0,
           );
 
           // Apply bloom effect if enabled
@@ -396,6 +411,20 @@ class _AwaSphereParticles extends CustomPainter {
   final double glowSoftness;
   final bool additiveBlending;
   final double haloOpacity;
+  // New motion settings
+  final MotionPattern motionPattern;
+  final WiggleStyle wiggleStyle;
+  final FlickerMode flickerMode;
+  final double driftIntensity;
+  final double wiggleIntensity;
+  final double flickerIntensity;
+  final double sizeVariation;
+  // 2D specific
+  final FlickerMode blinkMode;
+  final double blinkSpeed;
+  final double blinkIntensity;
+  final double glowIntensityBackdrop;
+  final double glowSizeBackdrop;
 
   _AwaSphereParticles({
     required this.rotationX,
@@ -427,6 +456,18 @@ class _AwaSphereParticles extends CustomPainter {
     required this.glowSoftness,
     required this.additiveBlending,
     required this.haloOpacity,
+    this.motionPattern = MotionPattern.gentle,
+    this.wiggleStyle = WiggleStyle.subtle,
+    this.flickerMode = FlickerMode.gentle,
+    this.driftIntensity = 1.5,
+    this.wiggleIntensity = 0.12,
+    this.flickerIntensity = 0.15,
+    this.sizeVariation = 0.5,
+    this.blinkMode = FlickerMode.gentle,
+    this.blinkSpeed = 0.6,
+    this.blinkIntensity = 0.25,
+    this.glowIntensityBackdrop = 0.5,
+    this.glowSizeBackdrop = 2.0,
   });
 
   @override
@@ -454,7 +495,8 @@ class _AwaSphereParticles extends CustomPainter {
         final inclination = math.acos(1 - 2 * t);
         final azimuth = goldenAngle * i;
 
-        final particleWaveOffset = math.sin(wavePhase + i * 0.1) * waveIntensity;
+        final particleWaveOffset =
+            math.sin(wavePhase + i * 0.1) * waveIntensity;
         final particleRadius = baseRadius * (1 + particleWaveOffset);
 
         double x = math.sin(inclination) * math.cos(azimuth);
@@ -539,15 +581,49 @@ class _AwaSphereParticles extends CustomPainter {
         dotColor = Color.lerp(gradMid, gradEnd, (distRatio - 0.5) * 2)!;
       }
 
-      // Gentle blink - speed controlled by pulseSpeed
-      final blinkPhase = math.sin(sparklePhase * 0.6 * pulseSpeed + i * 0.06);
-      final blinkFactor = 0.75 + blinkPhase * 0.25;
+      // Blink/flicker based on blinkMode
+      double blinkFactor = 1.0;
+      switch (blinkMode) {
+        case FlickerMode.off:
+          blinkFactor = 1.0;
+          break;
+        case FlickerMode.gentle:
+          final blinkPhase = math.sin(sparklePhase * blinkSpeed + i * 0.06);
+          blinkFactor = 1.0 - blinkIntensity + blinkPhase * blinkIntensity;
+          break;
+        case FlickerMode.candle:
+          // Fire-like irregular flicker
+          final noise1 = math.sin(sparklePhase * blinkSpeed * 2.5 + i * 0.2);
+          final noise2 = math.cos(sparklePhase * blinkSpeed * 1.7 + i * 0.15);
+          blinkFactor =
+              1.0 - blinkIntensity * 0.5 + (noise1 * noise2) * blinkIntensity;
+          break;
+        case FlickerMode.sparkle:
+          // Random sharp flashes
+          final sparkleVal = math.sin(sparklePhase * blinkSpeed * 4 + i * 1.7);
+          blinkFactor =
+              sparkleVal > 0.7
+                  ? 1.0 + blinkIntensity
+                  : 1.0 - blinkIntensity * 0.3;
+          break;
+        case FlickerMode.sync:
+          // All blink together
+          final syncPhase = math.sin(sparklePhase * blinkSpeed);
+          blinkFactor = 1.0 - blinkIntensity + syncPhase * blinkIntensity;
+          break;
+        case FlickerMode.wave:
+          // Wave propagates from center
+          final waveOffset = distRatio * 3;
+          final wavePhase = math.sin(sparklePhase * blinkSpeed - waveOffset);
+          blinkFactor = 1.0 - blinkIntensity + wavePhase * blinkIntensity;
+          break;
+      }
 
       // Dot size with slight variation - use configurable backdropDotSize
-      final sizeVariation = math.sin(i * 0.5) * 0.3;
+      final sizeVar = math.sin(i * 0.5) * 0.3;
       final dotSize =
           (backdropDotSize + (1 - distRatio) * backdropDotSize * 0.8) *
-          (1 + sizeVariation * 0.2);
+          (1 + sizeVar * 0.2);
 
       // Opacity with fade at edges and blink - use configurable backdropOpacity
       double opacity;
@@ -558,20 +634,31 @@ class _AwaSphereParticles extends CustomPainter {
       } else {
         opacity = backdropOpacity;
       }
-      opacity *= blinkFactor;
+      opacity *= blinkFactor.clamp(0.0, 1.5);
 
-      // Large soft blur glow
+      // Large soft blur glow - configurable
+      final outerGlowSize = dotSize * glowSizeBackdrop;
       final glowPaint =
           Paint()
-            ..color = dotColor.withOpacity(opacity * 0.5)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-      canvas.drawCircle(Offset(x, y), dotSize * 2.0, glowPaint);
+            ..color = dotColor.withOpacity(
+              opacity * glowIntensityBackdrop * 0.5,
+            )
+            ..maskFilter = MaskFilter.blur(
+              BlurStyle.normal,
+              4 + glowSizeBackdrop * 2,
+            );
+      canvas.drawCircle(Offset(x, y), outerGlowSize, glowPaint);
 
       // Medium glow layer
       final midGlowPaint =
           Paint()
-            ..color = dotColor.withOpacity(opacity * 0.6)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+            ..color = dotColor.withOpacity(
+              opacity * glowIntensityBackdrop * 0.6,
+            )
+            ..maskFilter = MaskFilter.blur(
+              BlurStyle.normal,
+              2 + glowSizeBackdrop,
+            );
       canvas.drawCircle(Offset(x, y), dotSize * 1.3, midGlowPaint);
 
       // Core dot
@@ -609,24 +696,152 @@ class _AwaSphereParticles extends CustomPainter {
   ) {
     final depthFactor = (particle.z + 1) / 2; // 0 to 1, back to front
 
-    // === GENTLE DRIFT ===
-    final driftX =
-        math.sin(sparklePhase * 0.3 * driftSpeed + particle.index * 0.5) * 1.5;
-    final driftY =
-        math.cos(sparklePhase * 0.25 * driftSpeed + particle.index * 0.7) * 1.2;
+    // === MOTION PATTERN DRIFT ===
+    double driftX = 0;
+    double driftY = 0;
+    switch (motionPattern) {
+      case MotionPattern.gentle:
+        driftX =
+            math.sin(sparklePhase * 0.3 * driftSpeed + particle.index * 0.5) *
+            driftIntensity;
+        driftY =
+            math.cos(sparklePhase * 0.25 * driftSpeed + particle.index * 0.7) *
+            driftIntensity *
+            0.8;
+        break;
+      case MotionPattern.organic:
+        // Perlin-like layered noise
+        driftX =
+            math.sin(sparklePhase * 0.2 * driftSpeed + particle.index * 0.3) *
+                driftIntensity +
+            math.sin(sparklePhase * 0.5 * driftSpeed + particle.index * 1.1) *
+                driftIntensity *
+                0.3;
+        driftY =
+            math.cos(sparklePhase * 0.18 * driftSpeed + particle.index * 0.5) *
+                driftIntensity +
+            math.cos(sparklePhase * 0.45 * driftSpeed + particle.index * 0.9) *
+                driftIntensity *
+                0.3;
+        break;
+      case MotionPattern.pulsing:
+        // Radial pulsing
+        final pulseOffset =
+            math.sin(sparklePhase * 0.5 * driftSpeed) * driftIntensity * 0.5;
+        driftX = (particle.x / radius) * pulseOffset * 10;
+        driftY = (particle.y / radius) * pulseOffset * 10;
+        break;
+      case MotionPattern.swirl:
+        // Circular/spiral motion
+        final angle = sparklePhase * 0.1 * driftSpeed;
+        final originalDist = math.sqrt(
+          particle.x * particle.x + particle.y * particle.y,
+        );
+        driftX =
+            math.cos(angle) * driftIntensity -
+            math.sin(angle) * driftIntensity * 0.2;
+        driftY =
+            math.sin(angle) * driftIntensity +
+            math.cos(angle) * driftIntensity * 0.2;
+        driftX *= originalDist / radius;
+        driftY *= originalDist / radius;
+        break;
+      case MotionPattern.jitter:
+        // Quick random micro-movements
+        driftX =
+            math.sin(sparklePhase * 3 * driftSpeed + particle.index * 2.1) *
+            driftIntensity *
+            0.5;
+        driftY =
+            math.cos(sparklePhase * 2.7 * driftSpeed + particle.index * 1.9) *
+            driftIntensity *
+            0.5;
+        break;
+      case MotionPattern.breathe:
+        // Slow inhale/exhale
+        final breathPhase = math.sin(sparklePhase * 0.15 * driftSpeed);
+        driftX = (particle.x / radius) * breathPhase * driftIntensity * 5;
+        driftY = (particle.y / radius) * breathPhase * driftIntensity * 5;
+        break;
+      case MotionPattern.float:
+        // Lazy upward tendency
+        driftX =
+            math.sin(sparklePhase * 0.2 * driftSpeed + particle.index * 0.4) *
+            driftIntensity *
+            0.5;
+        driftY =
+            -(math.sin(
+                  sparklePhase * 0.1 * driftSpeed + particle.index * 0.2,
+                )).abs() *
+                driftIntensity *
+                1.5 +
+            math.cos(sparklePhase * 0.25 * driftSpeed + particle.index * 0.6) *
+                driftIntensity *
+                0.3;
+        break;
+    }
     final pos = center + Offset(particle.x + driftX, particle.y + driftY);
 
-    // === ORGANIC SIZE VARIATION ===
-    final sizeVariation = 0.5 + (math.sin(particle.index * 1.7) + 1) * 0.75;
+    // === SIZE VARIATION ===
+    final sizeVar =
+        (1.0 - sizeVariation * 0.5) +
+        (math.sin(particle.index * 1.7) + 1) * sizeVariation * 0.5;
 
-    // Flicker and pulse
-    final flicker1 = math.sin(
-      sparklePhase * 1.8 * flickerSpeed + particle.index * 0.4,
-    );
-    final flicker2 = math.cos(
-      sparklePhase * 1.4 * flickerSpeed + particle.index * 0.7,
-    );
-    final flickerFactor = 0.85 + flicker1 * 0.08 + flicker2 * 0.07;
+    // === FLICKER BASED ON MODE ===
+    double flickerFactor = 1.0;
+    switch (flickerMode) {
+      case FlickerMode.off:
+        flickerFactor = 1.0;
+        break;
+      case FlickerMode.gentle:
+        final flicker1 = math.sin(
+          sparklePhase * 1.8 * flickerSpeed + particle.index * 0.4,
+        );
+        final flicker2 = math.cos(
+          sparklePhase * 1.4 * flickerSpeed + particle.index * 0.7,
+        );
+        flickerFactor =
+            1.0 -
+            flickerIntensity +
+            (flicker1 * 0.5 + flicker2 * 0.5 + 1) * flickerIntensity * 0.5;
+        break;
+      case FlickerMode.candle:
+        // Fire-like irregular brightness
+        final n1 = math.sin(
+          sparklePhase * 2.5 * flickerSpeed + particle.index * 0.3,
+        );
+        final n2 = math.cos(
+          sparklePhase * 1.8 * flickerSpeed + particle.index * 0.5,
+        );
+        final n3 = math.sin(
+          sparklePhase * 4.0 * flickerSpeed + particle.index * 0.8,
+        );
+        flickerFactor = 1.0 + (n1 * n2 + n3 * 0.3) * flickerIntensity;
+        break;
+      case FlickerMode.sparkle:
+        // Sharp random flashes
+        final sparkVal = math.sin(
+          sparklePhase * 5 * flickerSpeed + particle.index * 2.3,
+        );
+        flickerFactor =
+            sparkVal > 0.6
+                ? 1.0 + flickerIntensity * 2
+                : 1.0 - flickerIntensity * 0.2;
+        break;
+      case FlickerMode.sync:
+        // All flicker together
+        final syncFlicker = math.sin(sparklePhase * 2 * flickerSpeed);
+        flickerFactor = 1.0 - flickerIntensity + syncFlicker * flickerIntensity;
+        break;
+      case FlickerMode.wave:
+        // Brightness wave
+        final waveOffset = depthFactor * 4;
+        final waveFlicker = math.sin(sparklePhase * flickerSpeed - waveOffset);
+        flickerFactor = 1.0 - flickerIntensity + waveFlicker * flickerIntensity;
+        break;
+    }
+
+    // Pulse
     final pulse = math.sin(
       sparklePhase * 0.8 * pulseSpeed + particle.index * 0.15,
     );
@@ -675,23 +890,91 @@ class _AwaSphereParticles extends CustomPainter {
     final opacity = math.min(1.0, brightness);
 
     // Size with variations
-    final sizeMultiplier =
-        sizeVariation * (0.6 + depthFactor * 0.4) * flickerFactor;
+    final sizeMultiplier = sizeVar * (0.6 + depthFactor * 0.4) * flickerFactor;
     final currentSize = particleSize * sizeMultiplier;
 
-    // Wobble for organic shape
-    final wobble1 =
-        math.sin(sparklePhase * 1.2 * wobbleSpeed + particle.index) *
-        currentSize *
-        0.12;
-    final wobble2 =
-        math.cos(sparklePhase * 1.0 * wobbleSpeed + particle.index * 1.3) *
-        currentSize *
-        0.1;
-    final wobble3 =
-        math.sin(sparklePhase * 1.5 * wobbleSpeed + particle.index * 0.8) *
-        currentSize *
-        0.08;
+    // === WIGGLE BASED ON STYLE ===
+    double wobble1 = 0, wobble2 = 0, wobble3 = 0;
+    switch (wiggleStyle) {
+      case WiggleStyle.none:
+        // No wobble
+        break;
+      case WiggleStyle.subtle:
+        wobble1 =
+            math.sin(sparklePhase * 1.2 * wobbleSpeed + particle.index) *
+            currentSize *
+            wiggleIntensity;
+        wobble2 =
+            math.cos(sparklePhase * 1.0 * wobbleSpeed + particle.index * 1.3) *
+            currentSize *
+            wiggleIntensity *
+            0.8;
+        wobble3 =
+            math.sin(sparklePhase * 1.5 * wobbleSpeed + particle.index * 0.8) *
+            currentSize *
+            wiggleIntensity *
+            0.6;
+        break;
+      case WiggleStyle.fluid:
+        // Smooth liquid-like deformation
+        wobble1 =
+            math.sin(sparklePhase * 0.8 * wobbleSpeed + particle.index * 0.5) *
+            currentSize *
+            wiggleIntensity *
+            1.5;
+        wobble2 =
+            math.cos(sparklePhase * 0.6 * wobbleSpeed + particle.index * 0.7) *
+            currentSize *
+            wiggleIntensity *
+            1.3;
+        wobble3 =
+            math.sin(sparklePhase * 0.9 * wobbleSpeed + particle.index * 0.4) *
+            currentSize *
+            wiggleIntensity;
+        break;
+      case WiggleStyle.electric:
+        // Quick nervous energy
+        wobble1 =
+            math.sin(sparklePhase * 4 * wobbleSpeed + particle.index * 2) *
+            currentSize *
+            wiggleIntensity;
+        wobble2 =
+            math.cos(sparklePhase * 3.5 * wobbleSpeed + particle.index * 2.3) *
+            currentSize *
+            wiggleIntensity;
+        wobble3 =
+            math.sin(sparklePhase * 5 * wobbleSpeed + particle.index * 1.8) *
+            currentSize *
+            wiggleIntensity *
+            0.7;
+        break;
+      case WiggleStyle.wave:
+        // Wave propagation
+        final waveOffset = depthFactor * 3;
+        wobble1 =
+            math.sin(sparklePhase * 1.5 * wobbleSpeed - waveOffset) *
+            currentSize *
+            wiggleIntensity *
+            1.2;
+        wobble2 =
+            math.cos(sparklePhase * 1.3 * wobbleSpeed - waveOffset * 0.8) *
+            currentSize *
+            wiggleIntensity;
+        wobble3 =
+            math.sin(sparklePhase * 1.8 * wobbleSpeed - waveOffset * 1.2) *
+            currentSize *
+            wiggleIntensity *
+            0.8;
+        break;
+      case WiggleStyle.heartbeat:
+        // Pulse-like expansion
+        final beat = math.sin(sparklePhase * 2 * wobbleSpeed);
+        final beatEnvelope = beat > 0.5 ? (beat - 0.5) * 4 : 0;
+        wobble1 = beatEnvelope * currentSize * wiggleIntensity * 2;
+        wobble2 = beatEnvelope * currentSize * wiggleIntensity * 2;
+        wobble3 = 0;
+        break;
+    }
 
     // === SOFT GRADIENT SPRITE (Light Recipe #5) ===
     // Use soft circular gradient texture - white center, alpha fade to edges
@@ -755,9 +1038,9 @@ class _AwaSphereParticles extends CustomPainter {
     // === EMISSIVE CORE (Light Recipe #1 & #2) ===
     // Bright core with emissive intensity
 
-    // Main body with emissive boost
-    final bodyWidth = currentSize * (1.0 + wobble1 * 0.08);
-    final bodyHeight = currentSize * (1.0 - wobble2 * 0.06);
+    // Main body with emissive boost - use wobble3 for rotation effect
+    final bodyWidth = currentSize * (1.0 + wobble1 * 0.08 + wobble3 * 0.02);
+    final bodyHeight = currentSize * (1.0 - wobble2 * 0.06 + wobble3 * 0.015);
     final coreBrightness = math.min(1.0, opacity * coreIntensity);
 
     final bodyPaint =
