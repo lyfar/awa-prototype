@@ -162,32 +162,26 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
           duration: _selectedDuration,
           modalityName: _selectedModality?.name,
           onStart: _startPractice,
-        );
+      );
     }
   }
-
-  bool get _isDarkMode => 
-      _isMyPractice && 
-      _steps.isNotEmpty && 
-      _steps[_currentStep] == SetupStep.myPracticeDuration;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _isDarkMode ? Colors.black : Colors.white,
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // AwaSphere at top - half screen size, hidden on dark screens
-          if (!_isDarkMode)
-            const Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: AwaSphereHeader(
-                halfScreen: true,
-                interactive: true,
-              ),
+          // AwaSphere at top - half screen size
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: AwaSphereHeader(
+              halfScreen: true,
+              interactive: true,
             ),
+          ),
 
           // Back button
           Positioned(
@@ -197,7 +191,7 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
               onPressed: _goBack,
               icon: Icon(
                 _currentStep == 0 ? Icons.close : Icons.arrow_back,
-                color: _isDarkMode ? Colors.white54 : Colors.black54,
+                color: Colors.black54,
               ),
             ),
           ),
@@ -240,9 +234,7 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
                 ? const Color(0xFFFCB29C) 
                 : isPast 
                     ? const Color(0xFFFCB29C).withValues(alpha: 0.4)
-                    : _isDarkMode 
-                        ? Colors.white.withValues(alpha: 0.2)
-                        : Colors.black.withValues(alpha: 0.1),
+                    : Colors.black.withValues(alpha: 0.1),
           ),
         );
       }),

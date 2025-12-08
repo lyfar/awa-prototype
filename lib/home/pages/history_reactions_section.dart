@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../reactions/reaction_palette.dart';
+import '../../practice/components/radial_emotion_chart.dart';
 import '../theme/home_colors.dart';
 
 const Color _ink = Color(0xFF2B2B3C);
@@ -9,11 +10,15 @@ const Color _muted = Color(0xFF6E6677);
 class ReactionHistorySection extends StatefulWidget {
   final List<PracticeHistoryEntry> entries;
   final List<ReactionStateData> taxonomy;
+  final bool isPaidUser;
+  final VoidCallback? onUpgradeRequested;
 
   const ReactionHistorySection({
     super.key,
     required this.entries,
     required this.taxonomy,
+    this.isPaidUser = false,
+    this.onUpgradeRequested,
   });
 
   @override
@@ -73,6 +78,16 @@ class _ReactionHistorySectionState extends State<ReactionHistorySection> {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: _EmotionOverviewCard(
+              isLocked: !widget.isPaidUser,
+              profile: _buildEmotionProfile(filtered),
+              taxonomy: widget.taxonomy,
+              onUpgrade: widget.onUpgradeRequested,
+            ),
+          ),
+          const SizedBox(height: 18),
           PracticeHistoryFilters(
             selectedKey: _selectedReactionKey,
             taxonomy: widget.taxonomy,
@@ -106,6 +121,35 @@ class _ReactionHistorySectionState extends State<ReactionHistorySection> {
           ),
         ],
       ),
+    );
+  }
+
+  PracticeEmotionProfile _buildEmotionProfile(List<PracticeHistoryEntry> entries) {
+    final Map<String, int> counts = {};
+    for (final entry in entries) {
+      final key = entry.reactionKey;
+      if (key == null) continue;
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    final maxCount = counts.values.isEmpty ? 0 : counts.values.reduce((a, b) => a > b ? a : b);
+    double valueForIndex(int index) {
+      if (index >= widget.taxonomy.length) return 0.0;
+      final key = widget.taxonomy[index].key;
+      final count = counts[key] ?? 0;
+      if (maxCount == 0) {
+        return 0.35; // baseline shape
+      }
+      return (count / maxCount).clamp(0.25, 1.0);
+    }
+
+    return PracticeEmotionProfile(
+      grounded: valueForIndex(0),
+      joy: valueForIndex(1),
+      energy: valueForIndex(2),
+      peace: valueForIndex(3),
+      release: valueForIndex(4),
+      insight: valueForIndex(5),
+      unity: valueForIndex(6),
     );
   }
 }
@@ -235,6 +279,149 @@ class PracticeHistoryFilters extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmotionOverviewCard extends StatelessWidget {
+  final bool isLocked;
+  final PracticeEmotionProfile profile;
+  final List<ReactionStateData> taxonomy;
+  final VoidCallback? onUpgrade;
+
+  const _EmotionOverviewCard({
+    required this.isLocked,
+    required this.profile,
+    required this.taxonomy,
+    this.onUpgrade,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        color: Colors.white,
+        border: Border.all(color: HomeColors.cream),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 16,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isLocked ? HomeColors.peach.withOpacity(0.2) : HomeColors.cream,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isLocked
+                        ? HomeColors.peach.withOpacity(0.6)
+                        : HomeColors.rose.withOpacity(0.4),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isLocked ? Icons.lock_outline : Icons.insights_outlined,
+                      size: 16,
+                      color: _ink,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isLocked ? 'AwaJourney' : 'Reaction summary',
+                      style: const TextStyle(
+                        color: _ink,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              if (isLocked)
+                TextButton(
+                  onPressed: onUpgrade,
+                  child: const Text(
+                    'Unlock',
+                    style: TextStyle(
+                      color: _ink,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          AspectRatio(
+            aspectRatio: 1.8,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                RadialEmotionChart(
+                  profile: profile,
+                  size: 220,
+                  showLabels: false,
+                  animate: !isLocked,
+                  accentColor: HomeColors.peach,
+                ),
+                if (isLocked)
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      color: Colors.white.withOpacity(0.72),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.lock, color: _ink),
+                          SizedBox(height: 6),
+                          Text(
+                            'Upgrade to see your reaction map',
+                            style: TextStyle(
+                              color: _ink,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (!isLocked)
+            Text(
+              'Live map of your last reactions. Each vertex reflects how often you felt that state.',
+              style: const TextStyle(
+                color: _muted,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            )
+          else
+            const Text(
+              'AwaJourney unlocks your personal reaction insights and downloads.',
+              style: TextStyle(
+                color: _muted,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
         ],
       ),
     );

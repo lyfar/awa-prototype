@@ -158,6 +158,8 @@ class _StoryBubble extends StatelessWidget {
         return Icons.system_update_alt_rounded;
       case AnnouncementType.feedback:
         return Icons.chat_outlined;
+      case AnnouncementType.urgent:
+        return Icons.warning_amber_rounded;
     }
   }
 }

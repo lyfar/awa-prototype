@@ -13,6 +13,7 @@ class _NotificationSettingsSectionState extends State<NotificationSettingsSectio
     'practice': true,
     'missions': false,
     'product': true,
+    'urgent': true,
   };
 
   @override
@@ -35,6 +36,13 @@ class _NotificationSettingsSectionState extends State<NotificationSettingsSectio
           title: 'Mission updates',
           description: 'See when a manuscript hits milestones you helped unlock.',
           keyName: 'missions',
+        ),
+        const SizedBox(height: 12),
+        _buildToggle(
+          title: 'Urgent event calls',
+          description:
+              'Get notified when AwaTerra calls a global circle for crises or climate events.',
+          keyName: 'urgent',
         ),
         const SizedBox(height: 12),
         _buildToggle(

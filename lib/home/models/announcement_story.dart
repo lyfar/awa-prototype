@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum AnnouncementType { mission, master, practice, update, feedback }
+enum AnnouncementType { mission, master, practice, update, feedback, urgent }
 
 class AnnouncementStory {
   final String id;
@@ -8,10 +8,12 @@ class AnnouncementStory {
   final String body;
   final String caption;
   final String ctaLabel;
+  final String? secondaryCtaLabel;
   final AnnouncementType type;
   final Gradient gradient;
   bool isNew;
   final VoidCallback? onCta;
+  final VoidCallback? onSecondaryCta;
 
   AnnouncementStory({
     required this.id,
@@ -23,5 +25,7 @@ class AnnouncementStory {
     required this.gradient,
     this.isNew = true,
     this.onCta,
+    this.secondaryCtaLabel,
+    this.onSecondaryCta,
   });
 }

@@ -12,6 +12,8 @@ List<AnnouncementStory> buildHomeStories({
   required StoryAction onMasterCta,
   required StoryAction onUpdateCta,
   required StoryAction onFeedbackCta,
+  required StoryAction onUrgentJoinCta,
+  required StoryAction onUrgentDonateCta,
 }) {
   return [
     AnnouncementStory(
@@ -88,6 +90,23 @@ List<AnnouncementStory> buildHomeStories({
         end: Alignment.bottomRight,
       ),
       onCta: onFeedbackCta,
+    ),
+    AnnouncementStory(
+      id: 'story_urgent_01',
+      title: 'Urgent circle: Pacific quake',
+      caption: 'Call to gather',
+      body:
+          'A 7.1 quake hit the Pacific coast. Join a 10-minute stabilization practice or donate Lumens to route support.',
+      ctaLabel: 'Join urgent practice',
+      secondaryCtaLabel: 'Donate Lumens',
+      type: AnnouncementType.urgent,
+      gradient: const LinearGradient(
+        colors: [HomeColors.eclipse, HomeColors.rose],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      onCta: onUrgentJoinCta,
+      onSecondaryCta: onUrgentDonateCta,
     ),
   ];
 }

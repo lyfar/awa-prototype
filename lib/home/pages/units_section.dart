@@ -12,6 +12,9 @@ class UnitsSection extends StatelessWidget {
   final List<UnitTransaction> history;
   final VoidCallback onEarnUnits;
   final VoidCallback onSpendUnits;
+  final VoidCallback onInviteFriend;
+  final int inviteRewardYou;
+  final int inviteRewardFriend;
 
   const UnitsSection({
     super.key,
@@ -21,6 +24,9 @@ class UnitsSection extends StatelessWidget {
     required this.history,
     required this.onEarnUnits,
     required this.onSpendUnits,
+    required this.onInviteFriend,
+    required this.inviteRewardYou,
+    required this.inviteRewardFriend,
   });
 
   @override
@@ -64,6 +70,8 @@ class UnitsSection extends StatelessWidget {
             _buildBalanceCard(),
             const SizedBox(height: 24),
             _buildActionRow(),
+            const SizedBox(height: 18),
+            _buildInviteBanner(),
             const SizedBox(height: 24),
             _buildHistory(),
           ],
@@ -148,6 +156,14 @@ class UnitsSection extends StatelessWidget {
     );
   }
 
+  Widget _buildInviteBanner() {
+    return _InviteFriendBanner(
+      onTap: onInviteFriend,
+      rewardYou: inviteRewardYou,
+      rewardFriend: inviteRewardFriend,
+    );
+  }
+
   Widget _buildHistory() {
     return Expanded(
       child: Container(
@@ -200,6 +216,102 @@ class UnitsSection extends StatelessWidget {
           },
           separatorBuilder: (_, __) => const Divider(color: Color(0xFFE3E1EA)),
           itemCount: history.length,
+        ),
+      ),
+    );
+  }
+}
+
+class _InviteFriendBanner extends StatelessWidget {
+  final VoidCallback onTap;
+  final int rewardYou;
+  final int rewardFriend;
+
+  const _InviteFriendBanner({
+    required this.onTap,
+    required this.rewardYou,
+    required this.rewardFriend,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: const LinearGradient(
+            colors: [HomeColors.peach, HomeColors.rose],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x33FCB29C),
+              blurRadius: 22,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.group_add_outlined, color: _ink, size: 26),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Invite a friend',
+                    style: TextStyle(
+                      color: _ink,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'You earn +$rewardYou • They get +$rewardFriend on first practice.',
+                    style: const TextStyle(
+                      color: _ink,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: const [
+                  Text(
+                    'Open',
+                    style: TextStyle(
+                      color: _ink,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(width: 6),
+                  Icon(Icons.arrow_outward_rounded, color: _ink, size: 18),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

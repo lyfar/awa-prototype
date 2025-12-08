@@ -31,6 +31,7 @@ import '../home/pages/missions_section.dart';
 import '../home/pages/faq_section.dart';
 import '../globe/globe_widget.dart';
 import '../globe/globe_states.dart';
+import '../home/pages/invite_friend_screen.dart';
 import '../missions/mission_models.dart';
 import '../missions/mission_detail_sheet.dart';
 import '../missions/mission_saved_pages_sheet.dart';
@@ -111,6 +112,10 @@ class _HomeScreenState extends State<HomeScreen> {
   int _unitsBalance = 420;
   int _unitsEarnedThisWeek = 35;
   int _unitsSpentThisWeek = 12;
+  final int _inviteRewardYou = 25;
+  final int _inviteRewardFriend = 15;
+  final String _inviteLink = 'https://awaterra.com/app/invite?code=AWA-SPARK';
+  final String _inviteCode = 'AWA-SPARK';
   List<UnitTransaction> _unitsHistory = HomeDemoData.initialUnitHistory();
   double _awaPulseLevel = 0.78; // 0-1 scale representing global light
   int _activeLightUsers = 1842;
@@ -741,12 +746,54 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _openInviteFriendFlow() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (_) => InviteFriendScreen(
+              shareLink: _inviteLink,
+              rewardYou: _inviteRewardYou,
+              rewardFriend: _inviteRewardFriend,
+              inviteCode: _inviteCode,
+            ),
+      ),
+    );
+  }
+
   void _showPulseDetails() {
     showPulseDrawer(context, (_awaPulseLevel * 100).round());
   }
 
   void _showLightUsersDetails() {
     showLightUsersDrawer(context, _activeLightUsers);
+  }
+
+  void _handleUrgentPracticeCall() {
+    _openPracticeJourney();
+  }
+
+  void _handleUrgentDonate() {
+    _switchSection(HomeSection.units);
+    _showSpendUnitsSheet();
+  }
+
+  bool get _showMiniStart =>
+      _practiceState == PracticeFlowState.home &&
+      _activeSection != HomeSection.home &&
+      !_showNavigationMenu &&
+      !_showUserProfile;
+
+  void _handleMiniStartTap() {
+    setState(() {
+      _activeSection = HomeSection.home;
+      _showNavigationMenu = false;
+    });
+  }
+
+  void _handleMiniStartLongPress() {
+    if (_practiceState == PracticeFlowState.home) {
+      _openPracticeJourney();
+    }
   }
 
   void _openSavedPagesView(Mission mission) {
@@ -775,7 +822,12 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                20,
+                20,
+                20 + (_showMiniStart ? 110 : 0),
+              ),
               child: Column(
                 children: [
                   HomeTopBar(
@@ -832,7 +884,48 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           _buildNavigationOverlay(),
+          _buildFloatingStartButton(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFloatingStartButton() {
+    if (!_showMiniStart) {
+      return const SizedBox.shrink();
+    }
+
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 16 + MediaQuery.of(context).padding.bottom,
+      child: Center(
+        child: GestureDetector(
+          onTap: _handleMiniStartTap,
+          onLongPress: _handleMiniStartLongPress,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 78,
+            height: 78,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: _activeButtonGradient,
+              boxShadow: [
+                BoxShadow(
+                  color: _emberPeach.withOpacity(0.35),
+                  blurRadius: 18,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: const Icon(
+              Icons.auto_awesome,
+              color: _spaceBlack,
+              size: 30,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1281,6 +1374,9 @@ class _HomeScreenState extends State<HomeScreen> {
           history: _unitsHistory,
           onEarnUnits: _showEarnUnitsSheet,
           onSpendUnits: _showSpendUnitsSheet,
+          onInviteFriend: _openInviteFriendFlow,
+          inviteRewardYou: _inviteRewardYou,
+          inviteRewardFriend: _inviteRewardFriend,
         );
       case HomeSection.missions:
         return MissionsSection(
@@ -1292,6 +1388,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return ReactionHistorySection(
           entries: _historyEntries,
           taxonomy: _reactionStates,
+          isPaidUser: _isPaidUser,
+          onUpgradeRequested: () => _openAwaJourneySheet(entryPoint: 'insider_reactions'),
         );
       case HomeSection.faq:
         return FaqSection(items: _faqItems, onContact: _contactSupportTeam);
@@ -1310,6 +1408,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
       onUpdateCta: _showAppUpdateHighlights,
       onFeedbackCta: _promptFeedbackStory,
+      onUrgentJoinCta: _handleUrgentPracticeCall,
+      onUrgentDonateCta: _handleUrgentDonate,
     );
   }
 

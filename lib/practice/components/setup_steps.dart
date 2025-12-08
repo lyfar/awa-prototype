@@ -201,7 +201,7 @@ class _MyPracticeDurationStepState extends State<MyPracticeDurationStep> {
   late FixedExtentScrollController _scrollController;
   late int _selectedMinutes;
   
-  static const int minMinutes = 1;
+  static const int minMinutes = 10;
   static const int maxMinutes = 180;
 
   @override
@@ -221,82 +221,113 @@ class _MyPracticeDurationStepState extends State<MyPracticeDurationStep> {
 
   @override
   Widget build(BuildContext context) {
-    // Dark mode step - special layout
-    return SafeArea(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          const Spacer(flex: 2),
-          
-          // Large number display
-          Text(
-            '$_selectedMinutes',
-            style: GoogleFonts.urbanist(
-              fontSize: 96,
-              fontWeight: FontWeight.w300,
-              color: Colors.white,
-              height: 1,
-            ),
-          ),
-          
-          const SizedBox(height: 32),
-          
-          // Ruler picker
-          SizedBox(
-            height: 60,
-            child: RulerPicker(
-              controller: _scrollController,
-              minValue: minMinutes,
-              maxValue: maxMinutes,
-              value: _selectedMinutes,
-              onChanged: (value) {
-                setState(() {
-                  _selectedMinutes = value;
-                });
-                widget.onDurationChanged(Duration(minutes: value));
-              },
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          Text(
-            'minutes',
-            style: GoogleFonts.urbanist(
-              fontSize: 16,
-              color: Colors.white54,
-            ),
-          ),
-          
-          const Spacer(flex: 3),
-          
-          // Continue button
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: widget.onContinue,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black87,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                child: Text(
-                  'Set $_selectedMinutes minutes',
-                  style: GoogleFonts.urbanist(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
               ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Set your timer',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.black87,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Scroll to choose 10–180 minutes',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.urbanist(
+                    fontSize: 15,
+                    color: Colors.black45,
+                  ),
+                ),
+                
+                const SizedBox(height: 20),
+                
+                Text(
+                  '$_selectedMinutes',
+                  style: GoogleFonts.urbanist(
+                    fontSize: 80,
+                    fontWeight: FontWeight.w300,
+                    color: Colors.black87,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'minutes',
+                  style: GoogleFonts.urbanist(
+                    fontSize: 14,
+                    color: Colors.black54,
+                  ),
+                ),
+                
+                const SizedBox(height: 20),
+                
+                SizedBox(
+                  height: 70,
+                  child: RulerPicker(
+                    controller: _scrollController,
+                    minValue: minMinutes,
+                    maxValue: maxMinutes,
+                    value: _selectedMinutes,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedMinutes = value;
+                      });
+                      widget.onDurationChanged(Duration(minutes: value));
+                    },
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: widget.onContinue,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2B2B3C),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: Text(
+                      'Set $_selectedMinutes minutes',
+                      style: GoogleFonts.urbanist(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

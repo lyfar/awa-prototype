@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../../widgets/spiral_backdrop.dart';
 import '../models/announcement_story.dart';
 import '../theme/home_colors.dart';
+import '../../soul/awa_sphere.dart';
 
-const LinearGradient _storySpiralOverlay = LinearGradient(
-  colors: [Color(0xB3FFFFFF), Color(0x66FFFFFF)],
+const LinearGradient _sphereOverlay = LinearGradient(
+  colors: [Colors.transparent, Color(0xAAFFFFFF)],
   begin: Alignment.topCenter,
   end: Alignment.bottomCenter,
 );
-const double _storySpiralBleed = 1.4;
 
 class AnnouncementStoryViewer extends StatefulWidget {
   final List<AnnouncementStory> stories;
@@ -85,6 +84,12 @@ class _AnnouncementStoryViewerState extends State<AnnouncementStoryViewer> {
                       Navigator.of(context).pop();
                       story.onCta?.call();
                     },
+                    onSecondaryAction: story.secondaryCtaLabel == null
+                        ? null
+                        : () {
+                            Navigator.of(context).pop();
+                            story.onSecondaryCta?.call();
+                          },
                     onNext: index == stories.length - 1
                         ? null
                         : () => _controller.nextPage(
@@ -105,26 +110,43 @@ class _AnnouncementStoryViewerState extends State<AnnouncementStoryViewer> {
 class _StorySlide extends StatelessWidget {
   final AnnouncementStory story;
   final VoidCallback onAction;
+  final VoidCallback? onSecondaryAction;
   final VoidCallback? onNext;
 
-  const _StorySlide({required this.story, required this.onAction, this.onNext});
+  const _StorySlide({
+    required this.story,
+    required this.onAction,
+    this.onSecondaryAction,
+    this.onNext,
+  });
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final heroHeight = (size.height * 0.38).clamp(240.0, 360.0);
+    final heroHeight = (size.height * 0.5).clamp(320.0, 420.0);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
         children: [
           SizedBox(
             height: heroHeight,
-            child: SpiralBackdrop(
-              height: heroHeight,
-              bleedFactor: _storySpiralBleed,
-              offsetFactor: 0.0,
-              overlayGradient: _storySpiralOverlay,
-              showParticles: true,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                AwaSphereHeader(
+                  height: heroHeight,
+                  halfScreen: true,
+                  interactive: false,
+                  energy: 0.08,
+                  primaryColor: HomeColors.peach,
+                  secondaryColor: HomeColors.lavender,
+                ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: _sphereOverlay,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 20),
@@ -162,28 +184,63 @@ class _StorySlide extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: onAction,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: HomeColors.peach,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              ),
-              child: Text(
-                story.ctaLabel,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
+          _buildPrimaryCta(),
+          if (story.secondaryCtaLabel != null && onSecondaryAction != null) ...[
+            const SizedBox(height: 10),
+            _buildSecondaryCta(),
+          ],
           if (onNext != null)
             TextButton(
               onPressed: onNext,
               child: const Text('Next story'),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPrimaryCta() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: onAction,
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          backgroundColor:
+              story.type == AnnouncementType.urgent ? Colors.black : HomeColors.peach,
+          foregroundColor:
+              story.type == AnnouncementType.urgent ? Colors.white : Colors.black,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        ),
+        child: Text(
+          story.ctaLabel,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSecondaryCta() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: onSecondaryAction,
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          side: BorderSide(
+            color: story.type == AnnouncementType.urgent
+                ? Colors.black.withOpacity(0.65)
+                : Colors.black.withOpacity(0.25),
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        ),
+        child: Text(
+          story.secondaryCtaLabel ?? '',
+          style: TextStyle(
+            color: story.type == AnnouncementType.urgent ? Colors.black : Colors.black87,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
     );
   }
