@@ -390,8 +390,22 @@ class AwaSphereCompact extends StatelessWidget {
 class AwaSphereHeader extends StatelessWidget {
   final double height;
   final double energy;
+  final bool halfScreen;
+  final bool interactive;
+  final Color? primaryColor;
+  final Color? secondaryColor;
+  final Color? accentColor;
 
-  const AwaSphereHeader({super.key, this.height = 200, this.energy = 0.0});
+  const AwaSphereHeader({
+    super.key,
+    this.height = 200,
+    this.energy = 0.0,
+    this.halfScreen = false,
+    this.interactive = false,
+    this.primaryColor,
+    this.secondaryColor,
+    this.accentColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -400,10 +414,13 @@ class AwaSphereHeader extends StatelessWidget {
       child: AwaSphere(
         height: height,
         energy: energy,
-        interactive: false,
-        particleCount: 200,
-        particleSize: 2.5,
-        backdropDotCount: 150,
+        interactive: interactive,
+        primaryColor: primaryColor ?? AwaSphereConfig.primaryColor,
+        secondaryColor: secondaryColor ?? AwaSphereConfig.secondaryColor,
+        accentColor: accentColor,
+        particleCount: halfScreen ? 150 : 200,
+        particleSize: halfScreen ? 2.0 : 2.5,
+        backdropDotCount: halfScreen ? 100 : 150,
       ),
     );
   }
