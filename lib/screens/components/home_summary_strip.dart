@@ -25,8 +25,15 @@ class HomeMiniSummaryCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: Colors.white.withOpacity(0.85),
-            border: Border.all(color: Colors.black.withOpacity(0.05)),
+            color: const Color(0xFF13131D),
+            border: Border.all(color: Colors.white.withOpacity(0.06)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x22000000),
+                blurRadius: 14,
+                offset: Offset(0, 8),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,7 +52,7 @@ class HomeMiniSummaryCard extends StatelessWidget {
               Text(
                 value,
                 style: const TextStyle(
-                  color: _spaceBlack,
+                  color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
@@ -90,11 +97,11 @@ class _SummaryPill extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            color: Colors.white.withOpacity(0.85),
-            border: Border.all(color: Colors.black.withOpacity(0.05)),
+            color: const Color(0xFF13131D),
+            border: Border.all(color: Colors.white.withOpacity(0.06)),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x14000000),
+                color: Color(0x22000000),
                 blurRadius: 14,
                 offset: Offset(0, 8),
               ),
@@ -116,7 +123,7 @@ class _SummaryPill extends StatelessWidget {
               Text(
                 value,
                 style: const TextStyle(
-                  color: _spaceBlack,
+                  color: Colors.white,
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
                 ),
@@ -124,7 +131,7 @@ class _SummaryPill extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: TextStyle(color: Colors.black.withOpacity(0.6), fontSize: 12),
+                style: TextStyle(color: Colors.white.withOpacity(0.65), fontSize: 12),
               ),
             ],
           ),

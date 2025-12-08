@@ -15,7 +15,8 @@ class SupportSection extends StatefulWidget {
 class _SupportSectionState extends State<SupportSection> {
   final _contactController = TextEditingController();
   final _featureController = TextEditingController();
-  SupportTab _activeTab = SupportTab.about;
+  SupportTab _activeView = SupportTab.about;
+  bool _showingDetail = false;
 
   @override
   void dispose() {
@@ -47,7 +48,7 @@ class _SupportSectionState extends State<SupportSection> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
               child: Text(
                 'Support & ideas',
                 style: GoogleFonts.playfairDisplay(
@@ -58,7 +59,7 @@ class _SupportSectionState extends State<SupportSection> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
                 'Navigate to our policies or drop a note. No gating—everyone can reach the crew.',
                 style: GoogleFonts.urbanist(
@@ -68,20 +69,13 @@ class _SupportSectionState extends State<SupportSection> {
                 ),
               ),
             ),
-            const SizedBox(height: 14),
-            _SupportTabs(
-              active: _activeTab,
-              onChanged: (tab) => setState(() => _activeTab = tab),
-            ),
+            const SizedBox(height: 12),
             Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  24,
-                  12,
-                  24,
-                  24 + MediaQuery.of(context).padding.bottom,
-                ),
-                child: _buildContent(),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                child: _showingDetail
+                    ? _buildDetailView()
+                    : _buildMenuView(context),
               ),
             ),
           ],
@@ -90,73 +84,116 @@ class _SupportSectionState extends State<SupportSection> {
     );
   }
 
-  Widget _buildContent() {
-    switch (_activeTab) {
-      case SupportTab.about:
-        return const _StaticPage(
-          title: 'About AwaTerra',
-          paragraphs: [
-            'AwaTerra is a collective of practitioners, engineers, and guides building rituals that protect your attention and celebrate the planet.',
-            'We prototype fast, listen to the community, and keep the globe lit with live circles.',
-          ],
-        );
-      case SupportTab.privacy:
-        return const _StaticPage(
-          title: 'Privacy Policy',
-          paragraphs: [
-            'We respect your data. Session metadata stays on-device unless you opt into sharing for insights.',
-            'Contact details are only used to respond to your requests. We never sell personal data.',
-          ],
-        );
-      case SupportTab.terms:
-        return const _StaticPage(
-          title: 'Terms & Conditions',
-          paragraphs: [
-            'This prototype is for exploration only. Practices are not medical advice.',
-            'By continuing, you agree to respectful conduct in live circles and to our community standards.',
-          ],
-        );
-      case SupportTab.contact:
-        return _SupportCard(
-          title: 'Contact us',
-          subtitle: 'Bug, billing, or account help.',
-          controller: _contactController,
-          hint: 'Describe the issue...',
+  Widget _buildMenuView(BuildContext context) {
+    return ListView(
+      key: const ValueKey('support_menu'),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        0,
+        20,
+        20 + MediaQuery.of(context).padding.bottom,
+      ),
+      children: [
+        _SupportMenuTile(
+          icon: Icons.info_outline,
+          label: 'About us',
+          selected: false,
+          onTap: () => _openDetail(SupportTab.about),
+        ),
+        _SupportMenuTile(
+          icon: Icons.privacy_tip_outlined,
+          label: 'Privacy policy',
+          selected: false,
+          onTap: () => _openDetail(SupportTab.privacy),
+        ),
+        _SupportMenuTile(
+          icon: Icons.description_outlined,
+          label: 'Terms & conditions',
+          selected: false,
+          onTap: () => _openDetail(SupportTab.terms),
+        ),
+        _SupportMenuTile(
           icon: Icons.support_agent,
-          accent: HomeColors.peach,
-          onSubmit: _submitContact,
-        );
-      case SupportTab.feature:
-        return _SupportCard(
-          title: 'Suggest a feature',
-          subtitle: 'Tell us what would make practice better.',
-          controller: _featureController,
-          hint: 'Request, idea, or workflow...',
+          label: 'Contact us',
+          selected: false,
+          onTap: () => _openDetail(SupportTab.contact),
+        ),
+        _SupportMenuTile(
           icon: Icons.lightbulb_outline,
-          accent: HomeColors.lavender,
-          onSubmit: _submitFeature,
-        );
+          label: 'Suggest a feature',
+          selected: false,
+          onTap: () => _openDetail(SupportTab.feature),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailView() {
+    return Column(
+      key: const ValueKey('support_detail'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => setState(() => _showingDetail = false),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                _titleForTab(_activeView),
+                style: GoogleFonts.urbanist(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF2B2B3C),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              0,
+              20,
+              20 + MediaQuery.of(context).padding.bottom,
+            ),
+            child: _SupportContentPane(
+              tab: _activeView,
+              contactController: _contactController,
+              featureController: _featureController,
+              onSubmit: widget.onSubmit,
+              showSnack: _showSnack,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _titleForTab(SupportTab tab) {
+    switch (tab) {
+      case SupportTab.about:
+        return 'About us';
+      case SupportTab.privacy:
+        return 'Privacy policy';
+      case SupportTab.terms:
+        return 'Terms & conditions';
+      case SupportTab.contact:
+        return 'Contact us';
+      case SupportTab.feature:
+        return 'Suggest a feature';
     }
   }
 
-  void _submitContact() {
-    final text = _contactController.text.trim();
-    if (text.isEmpty) return;
-    widget.onSubmit(
-      SupportSubmission(type: SupportType.contact, message: text),
-    );
-    _contactController.clear();
-    _showSnack('Thanks — we’ll respond soon.');
-  }
-
-  void _submitFeature() {
-    final text = _featureController.text.trim();
-    if (text.isEmpty) return;
-    widget.onSubmit(
-      SupportSubmission(type: SupportType.feature, message: text),
-    );
-    _featureController.clear();
-    _showSnack('Idea saved. +10 Lumens coming your way.');
+  void _openDetail(SupportTab tab) {
+    setState(() {
+      _activeView = tab;
+      _showingDetail = true;
+    });
   }
 
   void _showSnack(String message) {
@@ -286,108 +323,170 @@ class _SupportCard extends StatelessWidget {
   }
 }
 
-class _SupportTabs extends StatelessWidget {
-  final SupportTab active;
-  final ValueChanged<SupportTab> onChanged;
+class _SupportMenuTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool selected;
 
-  const _SupportTabs({required this.active, required this.onChanged});
+  const _SupportMenuTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    required this.selected,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final tabs = [
-      _SupportMenuItem(
-        tab: SupportTab.about,
-        label: 'About us',
-        icon: Icons.info_outline,
-      ),
-      _SupportMenuItem(
-        tab: SupportTab.privacy,
-        label: 'Privacy policy',
-        icon: Icons.privacy_tip_outlined,
-      ),
-      _SupportMenuItem(
-        tab: SupportTab.terms,
-        label: 'Terms & conditions',
-        icon: Icons.description_outlined,
-      ),
-      _SupportMenuItem(
-        tab: SupportTab.contact,
-        label: 'Contact us',
-        icon: Icons.support_agent,
-      ),
-      _SupportMenuItem(
-        tab: SupportTab.feature,
-        label: 'Suggest a feature',
-        icon: Icons.lightbulb_outline,
-      ),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Column(
-        children: tabs.map((item) {
-          final selected = item.tab == active;
-          return Card(
-            color: Colors.white,
-            elevation: selected ? 3 : 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(
-                color: selected
-                    ? HomeColors.peach.withOpacity(0.6)
-                    : Colors.black.withOpacity(0.06),
-              ),
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected
+                ? HomeColors.peach.withOpacity(0.5)
+                : Colors.black.withOpacity(0.05),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 6),
             ),
-            child: ListTile(
-              onTap: () => onChanged(item.tab),
-              leading: CircleAvatar(
-                backgroundColor: HomeColors.cream,
-                child: Icon(item.icon, color: const Color(0xFF2B2B3C)),
-              ),
-              title: Text(
-                item.label,
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: HomeColors.cream,
+              child: Icon(icon, color: const Color(0xFF2B2B3C)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
                 style: GoogleFonts.urbanist(
                   fontWeight: FontWeight.w700,
+                  fontSize: 15,
                   color: const Color(0xFF2B2B3C),
                 ),
               ),
-              trailing: Icon(
-                selected ? Icons.radio_button_checked : Icons.chevron_right,
-                color: selected ? HomeColors.peach : Colors.black45,
-              ),
             ),
-          );
-        }).toList(),
+            Icon(
+              Icons.chevron_right,
+              color: selected ? HomeColors.peach : Colors.black45,
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _SupportMenuItem {
+class _SupportContentPane extends StatelessWidget {
   final SupportTab tab;
-  final String label;
-  final IconData icon;
+  final TextEditingController contactController;
+  final TextEditingController featureController;
+  final ValueChanged<SupportSubmission> onSubmit;
+  final void Function(String message) showSnack;
 
-  _SupportMenuItem({
+  const _SupportContentPane({
     required this.tab,
-    required this.label,
-    required this.icon,
+    required this.contactController,
+    required this.featureController,
+    required this.onSubmit,
+    required this.showSnack,
   });
-}
-
-class _StaticPage extends StatelessWidget {
-  final String title;
-  final List<String> paragraphs;
-
-  const _StaticPage({required this.title, required this.paragraphs});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
+    switch (tab) {
+      case SupportTab.about:
+        return const _SupportStaticCard(
+          title: 'About AwaTerra',
+          paragraphs: [
+            'AwaTerra is a collective of practitioners, engineers, and guides building rituals that protect your attention and celebrate the planet.',
+            'We prototype fast, listen to the community, and keep the globe lit with live circles.',
+          ],
+        );
+      case SupportTab.privacy:
+        return const _SupportStaticCard(
+          title: 'Privacy Policy',
+          paragraphs: [
+            'We respect your data. Session metadata stays on-device unless you opt into sharing for insights.',
+            'Contact details are only used to respond to your requests. We never sell personal data.',
+          ],
+        );
+      case SupportTab.terms:
+        return const _SupportStaticCard(
+          title: 'Terms & Conditions',
+          paragraphs: [
+            'This prototype is for exploration only. Practices are not medical advice.',
+            'By continuing, you agree to respectful conduct in live circles and to our community standards.',
+          ],
+        );
+      case SupportTab.contact:
+        return _SupportFormCard(
+          title: 'Contact us',
+          subtitle: 'Bug, billing, or account help.',
+          controller: contactController,
+          hint: 'Describe the issue...',
+          accent: HomeColors.peach,
+          icon: Icons.support_agent,
+          onSubmit: () {
+            final text = contactController.text.trim();
+            if (text.isEmpty) return;
+            onSubmit(SupportSubmission(type: SupportType.contact, message: text));
+            contactController.clear();
+            showSnack('Thanks — we’ll respond soon.');
+          },
+        );
+      case SupportTab.feature:
+        return _SupportFormCard(
+          title: 'Suggest a feature',
+          subtitle: 'Tell us what would make practice better.',
+          controller: featureController,
+          hint: 'Request, idea, or workflow...',
+          accent: HomeColors.lavender,
+          icon: Icons.lightbulb_outline,
+          onSubmit: () {
+            final text = featureController.text.trim();
+            if (text.isEmpty) return;
+            onSubmit(SupportSubmission(type: SupportType.feature, message: text));
+            featureController.clear();
+            showSnack('Idea saved. +10 Lumens coming your way.');
+          },
+        );
+    }
+  }
+}
+
+class _SupportStaticCard extends StatelessWidget {
+  final String title;
+  final List<String> paragraphs;
+
+  const _SupportStaticCard({required this.title, required this.paragraphs});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: Colors.black.withOpacity(0.05)),
+        border: Border.all(color: Colors.black.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -413,6 +512,119 @@ class _StaticPage extends StatelessWidget {
                     color: Colors.black54,
                     height: 1.5,
                   ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SupportFormCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final TextEditingController controller;
+  final String hint;
+  final Color accent;
+  final IconData icon;
+  final VoidCallback onSubmit;
+
+  const _SupportFormCard({
+    required this.title,
+    required this.subtitle,
+    required this.controller,
+    required this.hint,
+    required this.accent,
+    required this.icon,
+    required this.onSubmit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.black.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: accent.withOpacity(0.15),
+                  child: Icon(icon, color: accent),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF2B2B3C),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.urbanist(
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              minLines: 4,
+              maxLines: 6,
+              decoration: InputDecoration(
+                hintText: hint,
+                filled: true,
+                fillColor: Colors.black.withOpacity(0.02),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: Colors.black.withOpacity(0.05)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: accent, width: 1.6),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton(
+                onPressed: onSubmit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Send',
+                  style: TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
             ),

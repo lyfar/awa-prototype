@@ -30,17 +30,17 @@ class HomeTopBar extends StatelessWidget {
           isOpen: isMenuOpen,
           onTap: onMenuTap,
         ),
-        const SizedBox(width: 14),
+        const SizedBox(width: 12),
         Expanded(
           child: StoryCarousel(
             stories: stories,
             onStorySelected: onStorySelected,
-            bubbleSize: 36,
+            bubbleSize: 40,
             showLabels: false,
             overlap: true,
           ),
         ),
-        const SizedBox(width: 14),
+        const SizedBox(width: 12),
         _ProfileButton(onTap: onProfileTap),
       ],
     );
@@ -62,14 +62,21 @@ class _HamburgerButton extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        width: 48,
-        height: 48,
+        width: 50,
+        height: 50,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          color: isOpen ? HomeColors.cream : Colors.white,
+          color: isOpen ? HomeColors.cream.withOpacity(0.9) : Colors.white.withOpacity(0.9),
           border: Border.all(
             color: isOpen ? HomeColors.peach : Colors.black12,
           ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x33000000),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
@@ -94,12 +101,19 @@ class _ProfileButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 48,
-        height: 48,
+        width: 50,
+        height: 50,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white,
+          color: Colors.white.withOpacity(0.9),
           border: Border.all(color: Colors.black.withValues(alpha: 0.05), width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x33000000),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
         child: Stack(
           children: [

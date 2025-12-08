@@ -831,12 +831,18 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     return Scaffold(
-      backgroundColor: _canvasIvory,
+      backgroundColor:
+          _activeSection == HomeSection.home ? Colors.black : _canvasIvory,
       body: Stack(
         children: [
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                20,
+                20,
+                20 + (_showMiniStart ? 70 : 0),
+              ),
               child: Column(
                 children: [
                   HomeTopBar(
@@ -914,24 +920,58 @@ class _HomeScreenState extends State<HomeScreen> {
           onLongPress: _handleMiniStartLongPress,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: _activeButtonGradient,
-              boxShadow: [
-                BoxShadow(
-                  color: _emberPeach.withOpacity(0.32),
-                  blurRadius: 16,
-                  offset: const Offset(0, 8),
+            width: 64,
+            height: 64,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: _emberPeach.withOpacity(0.35),
+                        blurRadius: 26,
+                        spreadRadius: 8,
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.75),
+                        blurRadius: 14,
+                        spreadRadius: 4,
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Colors.white, HomeColors.cream],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    border: Border.all(color: Colors.white, width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.6),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const SizedBox(
+                    width: 64,
+                    height: 64,
+                    child: Icon(
+                      Icons.auto_awesome,
+                      color: _spaceBlack,
+                      size: 26,
+                    ),
+                  ),
                 ),
               ],
-              border: Border.all(color: Colors.white, width: 2),
-            ),
-            child: const Icon(
-              Icons.auto_awesome,
-              color: _spaceBlack,
-              size: 30,
             ),
           ),
         ),
@@ -1319,12 +1359,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final Widget sectionWidget =
         _activeSection == HomeSection.home
             ? _buildExperienceSurface()
-            : Padding(
-                padding: EdgeInsets.only(
-                  bottom: _showMiniStart ? 110.0 : 0.0,
-                ),
-                child: _buildSectionContent(_activeSection),
-              );
+            : _buildSectionContent(_activeSection);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

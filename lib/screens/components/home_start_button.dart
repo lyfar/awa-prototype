@@ -24,25 +24,55 @@ class HomeStartButton extends StatelessWidget {
           child: InkWell(
             onTap: isEnabled ? onPressed : null,
             customBorder: const CircleBorder(),
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: _activeButtonGradient,
-                boxShadow: [
-                  BoxShadow(
-                    color: _emberPeach.withOpacity(0.45),
-                    blurRadius: 28,
-                    offset: const Offset(0, 16),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 110,
+                  height: 110,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: _emberPeach.withOpacity(0.4),
+                        blurRadius: 36,
+                        spreadRadius: 10,
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.8),
+                        blurRadius: 18,
+                        spreadRadius: 4,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Center(
-                child: Icon(
-                  Icons.auto_awesome,
-                  color: _spaceBlack,
-                  size: 36,
                 ),
-              ),
+                Container(
+                  width: 96,
+                  height: 96,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Colors.white, HomeColors.cream],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.6),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.auto_awesome,
+                      color: _spaceBlack,
+                      size: 32,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

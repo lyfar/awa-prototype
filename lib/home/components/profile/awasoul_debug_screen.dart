@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../soul/awa_sphere.dart';
 import '../../../soul/awa_soul_settings.dart';
+import '../../../globe/globe_widget.dart';
+import '../../../globe/globe_states.dart';
 import 'debug/debug_panel_theme.dart';
 import 'debug/debug_ui_builders.dart';
 import 'debug/debug_3d_tab.dart';
 import 'debug/debug_2d_tab.dart';
 import 'debug/debug_sphere_tab.dart';
+import 'debug/debug_globe_tab.dart';
 
 /// Full-screen AwaSoul debug page with layer-based controls
 /// Features a sliding panel that minimizes visual obstruction
@@ -19,6 +22,7 @@ class AwaSoulDebugScreen extends StatefulWidget {
 
 class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
   final _settings = AwaSoulSettings();
+  final _globeSettings = GlobeDebugSettings();
 
   // Panel state
   double _panelHeight = 0.35;
@@ -26,7 +30,7 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
   static const double _maxPanel = 0.65;
 
   // Layer tab
-  int _selectedLayer = 0; // 0=3D, 1=2D, 2=Sphere
+  int _selectedLayer = 0; // 0=3D, 1=2D, 2=Sphere, 3=Globe
 
   // Expanded section within current layer
   String? _expandedSection;
@@ -41,11 +45,14 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
   void initState() {
     super.initState();
     _settings.addListener(_onSettingsChanged);
+    _globeSettings.addListener(_onSettingsChanged);
+    print('AwaSoulDebugScreen: initState');
   }
 
   @override
   void dispose() {
     _settings.removeListener(_onSettingsChanged);
+    _globeSettings.removeListener(_onSettingsChanged);
     super.dispose();
   }
 
@@ -138,12 +145,15 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
           ),
           TextButton(
             onPressed: () {
+              print('AwaSoulDebugScreen: Reset pressed for layer $_selectedLayer');
               if (_selectedLayer == 0) {
                 _settings.reset3D();
               } else if (_selectedLayer == 1) {
                 _settings.reset2D();
-              } else {
+              } else if (_selectedLayer == 2) {
                 _settings.resetToDefaults();
+              } else {
+                _globeSettings.resetToDefaults();
               }
             },
             child: const Text('Reset', style: TextStyle(fontSize: 12, color: Colors.orange)),
@@ -154,6 +164,44 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
   }
 
   Widget _buildSpherePreview(double height) {
+    // Show blended layers when globe tab is selected
+    if (_selectedLayer == 3) {
+      print('AwaSoulDebugScreen: Globe tab - blending layers');
+      return Stack(
+        children: [
+          // Base layer: Globe (if enabled)
+          if (_globeSettings.showGlobe)
+            Positioned.fill(
+              child: Opacity(
+                opacity: _globeSettings.earthOpacity,
+                child: GlobeWidget(
+                  config: GlobeConfig.globe(
+                    height: double.infinity,
+                    showUserLight: _globeSettings.showUserLight,
+                    userLatitude: _globeSettings.userLatitude,
+                    userLongitude: _globeSettings.userLongitude,
+                  ),
+                  backgroundColor: Colors.black,
+                ),
+              ),
+            ),
+          // Overlay: AwaSphere (3D + 2D particles)
+          if (_settings.layer3D.enabled || _settings.layer2D.enabled)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: _globeSettings.particleOverlayOpacity,
+                  child: AwaSphere(
+                    height: height,
+                    useGlobalSettings: true,
+                    interactive: false,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+    }
     return AwaSphere(height: height, useGlobalSettings: true, interactive: true);
   }
 
@@ -212,6 +260,7 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
       ('3D', Icons.blur_on, _settings.layer3D.enabled),
       ('2D', Icons.gradient, _settings.layer2D.enabled),
       ('Sphere', Icons.circle_outlined, true),
+      ('Globe', Icons.public, true),
     ];
 
     return Container(
@@ -253,13 +302,14 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
                         color: isSelected ? t.text : t.textSecondary,
                       ),
                     ),
+                    // Only show visibility toggle for 3D and 2D layers
                     if (index < 2) ...[
                       const SizedBox(width: 4),
                       GestureDetector(
                         onTap: () {
                           if (index == 0) {
                             _settings.update3D((s) => s.copyWith(enabled: !s.enabled));
-                          } else {
+                          } else if (index == 1) {
                             _settings.update2D((s) => s.copyWith(enabled: !s.enabled));
                           }
                         },
@@ -305,6 +355,12 @@ class _AwaSoulDebugScreenState extends State<AwaSoulDebugScreen> {
           settings: _settings,
           ui: ui,
           openColorPicker: (color) => _openColorPicker(color, 'sphere'),
+        );
+      case 3:
+        return DebugGlobeTab(
+          settings: _globeSettings,
+          soulSettings: _settings,
+          ui: ui,
         );
       default:
         return const SizedBox.shrink();
