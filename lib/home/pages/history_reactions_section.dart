@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../reactions/reaction_palette.dart';
 import '../../practice/components/radial_emotion_chart.dart';
+import '../../reactions/reaction_palette.dart';
 import '../theme/home_colors.dart';
 
 const Color _ink = Color(0xFF2B2B3C);
@@ -98,8 +98,6 @@ class _ReactionHistorySectionState extends State<ReactionHistorySection> {
             },
           ),
           const SizedBox(height: 12),
-          _PaletteDots(taxonomy: widget.taxonomy),
-          const SizedBox(height: 12),
           Expanded(
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
@@ -108,11 +106,6 @@ class _ReactionHistorySectionState extends State<ReactionHistorySection> {
                 return _HistoryCard(
                   entry: entry,
                   taxonomy: widget.taxonomy,
-                  onSelectReaction: (reactionKey) {
-                    setState(() {
-                      entry.reactionKey = reactionKey;
-                    });
-                  },
                 );
               },
               separatorBuilder: (_, __) => const SizedBox(height: 20),
@@ -150,84 +143,6 @@ class _ReactionHistorySectionState extends State<ReactionHistorySection> {
       release: valueForIndex(4),
       insight: valueForIndex(5),
       unity: valueForIndex(6),
-    );
-  }
-}
-
-class _PaletteDots extends StatelessWidget {
-  final List<ReactionStateData> taxonomy;
-
-  const _PaletteDots({required this.taxonomy});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Reaction palette',
-            style: TextStyle(
-              color: _ink,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: taxonomy
-                .map(
-                  (reaction) => _PaletteDot(
-                    color: reaction.color,
-                    label: reaction.label,
-                  ),
-                )
-                .toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PaletteDot extends StatelessWidget {
-  final Color color;
-  final String label;
-
-  const _PaletteDot({required this.color, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: color.withValues(alpha: 0.2),
-            border: Border.all(color: color),
-          ),
-        ),
-        const SizedBox(height: 6),
-        SizedBox(
-          width: 72,
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _muted,
-              fontSize: 11,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -405,9 +320,9 @@ class _EmotionOverviewCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           if (!isLocked)
-            Text(
+            const Text(
               'Live map of your last reactions. Each vertex reflects how often you felt that state.',
-              style: const TextStyle(
+              style: TextStyle(
                 color: _muted,
                 fontSize: 13,
                 height: 1.4,
@@ -431,16 +346,15 @@ class _EmotionOverviewCard extends StatelessWidget {
 class _HistoryCard extends StatelessWidget {
   final PracticeHistoryEntry entry;
   final List<ReactionStateData> taxonomy;
-  final ValueChanged<String?> onSelectReaction;
 
   const _HistoryCard({
     required this.entry,
     required this.taxonomy,
-    required this.onSelectReaction,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bool hasReaction = entry.reactionKey != null;
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
@@ -455,17 +369,12 @@ class _HistoryCard extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(
-                  entry.isMasterSession ? Icons.auto_awesome : Icons.self_improvement,
-                  color: entry.isMasterSession ? HomeColors.lavender : HomeColors.peach,
-                ),
-                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -478,70 +387,47 @@ class _HistoryCard extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      Text(
-                        '${entry.duration.inMinutes} min • ${entry.dateLabel}',
-                        style: TextStyle(
-                          color: _muted,
-                        ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          _InfoPill(
+                            icon: Icons.timer_outlined,
+                            label: '${entry.duration.inMinutes} min',
+                          ),
+                          const SizedBox(width: 8),
+                          _InfoPill(
+                            icon: Icons.calendar_today_outlined,
+                            label: entry.dateLabel,
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-                TextButton(
-                  onPressed: () {},
-                  style: TextButton.styleFrom(
-                    foregroundColor: _ink,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                    minimumSize: Size.zero,
+                const SizedBox(width: 8),
+                if (hasReaction)
+                  _ReactionBadge(
+                    reaction: taxonomy.firstWhere(
+                      (state) => state.key == entry.reactionKey,
+                      orElse: () => taxonomy.first,
+                    ),
                   ),
-                  child: const Text('Download card'),
-                ),
               ],
             ),
             if (entry.masterName != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
                 'Master ${entry.masterName}',
                 style: TextStyle(
                   color: HomeColors.lavender,
                   fontStyle: FontStyle.italic,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
-            const SizedBox(height: 12),
-            if (entry.reactionKey != null)
-              _ReactionSummary(
-                reaction: taxonomy.firstWhere(
-                  (state) => state.key == entry.reactionKey,
-                  orElse: () => taxonomy.first,
-                ),
-              ),
-            const SizedBox(height: 12),
-            _buildReactionChips(),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildReactionChips() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: taxonomy.map((reaction) {
-        final selected = entry.reactionKey == reaction.key;
-        return ChoiceChip(
-          label: Text(reaction.label),
-          selected: selected,
-          selectedColor: reaction.color.withValues(alpha: 0.25),
-          labelStyle: TextStyle(
-            color: selected ? _ink : _muted,
-          ),
-          backgroundColor: Colors.white,
-          side: BorderSide(color: reaction.color.withValues(alpha: 0.4)),
-          onSelected: (_) => onSelectReaction(reaction.key),
-        );
-      }).toList(),
     );
   }
 }
@@ -564,48 +450,70 @@ class PracticeHistoryEntry {
   });
 }
 
-class _ReactionSummary extends StatelessWidget {
-  final ReactionStateData reaction;
+class _InfoPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
 
-  const _ReactionSummary({required this.reaction});
+  const _InfoPill({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: reaction.color.withValues(alpha: 0.1),
-        border: Border.all(color: reaction.color.withValues(alpha: 0.3)),
+        color: Colors.black.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: _muted),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: _muted,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReactionBadge extends StatelessWidget {
+  final ReactionStateData reaction;
+
+  const _ReactionBadge({required this.reaction});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: reaction.color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: reaction.color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 12,
-            height: 12,
+            width: 10,
+            height: 10,
             decoration: BoxDecoration(
               color: reaction.color,
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  reaction.label,
-                  style: const TextStyle(
-                    color: _ink,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  reaction.description,
-                  style: TextStyle(color: _muted),
-                ),
-              ],
+          const SizedBox(width: 8),
+          Text(
+            reaction.label,
+            style: const TextStyle(
+              color: _ink,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],

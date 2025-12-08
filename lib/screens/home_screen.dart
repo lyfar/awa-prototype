@@ -29,6 +29,7 @@ import '../home/pages/units_section.dart';
 import '../home/pages/history_reactions_section.dart';
 import '../home/pages/missions_section.dart';
 import '../home/pages/faq_section.dart';
+import '../home/pages/support_section.dart';
 import '../globe/globe_widget.dart';
 import '../globe/globe_states.dart';
 import '../home/pages/invite_friend_screen.dart';
@@ -796,6 +797,19 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _handleSupportSubmission(SupportSubmission submission) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          submission.type == SupportType.contact
+              ? 'Support request sent.'
+              : 'Feature idea received.',
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   void _openSavedPagesView(Mission mission) {
     final pages = _missionSavedPages[mission.id] ?? ['page_1'];
     showMissionSavedPagesSheet(
@@ -822,12 +836,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           SafeArea(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                20,
-                20,
-                20 + (_showMiniStart ? 110 : 0),
-              ),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
                   HomeTopBar(
@@ -1307,6 +1316,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final bool canStartPractice =
         _activeSection == HomeSection.home &&
         _practiceState == PracticeFlowState.home;
+    final Widget sectionWidget =
+        _activeSection == HomeSection.home
+            ? _buildExperienceSurface()
+            : Padding(
+                padding: EdgeInsets.only(bottom: _showMiniStart ? 90.0 : 0.0),
+                child: _buildSectionContent(_activeSection),
+              );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1314,10 +1330,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: ClipRRect(
             borderRadius: BorderRadius.circular(40),
-            child:
-                _activeSection == HomeSection.home
-                    ? _buildExperienceSurface()
-                    : _buildSectionContent(_activeSection),
+            child: sectionWidget,
           ),
         ),
         if (canStartPractice) ...[
@@ -1384,6 +1397,8 @@ class _HomeScreenState extends State<HomeScreen> {
           onMissionSelected: _openMissionDetail,
           onContribute: _openMissionDetail,
         );
+      case HomeSection.donations:
+        return SupportSection(onSubmit: _handleSupportSubmission);
       case HomeSection.history:
         return ReactionHistorySection(
           entries: _historyEntries,

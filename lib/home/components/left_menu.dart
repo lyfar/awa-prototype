@@ -214,7 +214,7 @@ class LeftMenu extends StatelessWidget {
   Widget _buildSupportCard() {
     return _DashboardCard(
       title: 'Support',
-      description: 'Offer Lumens to keep collective work alive.',
+      description: 'Contact us, suggest features, or offer help.',
       preview: const Icon(
         Icons.favorite_outline,
         color: HomeColors.peach,
@@ -228,7 +228,7 @@ class LeftMenu extends StatelessWidget {
         ),
       ],
       onTap: () => onSectionSelected(HomeSection.donations),
-      locked: !isPaidUser,
+      locked: false,
       isActive: activeSection == HomeSection.donations,
     );
   }

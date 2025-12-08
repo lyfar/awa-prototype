@@ -55,7 +55,6 @@ extension HomeSectionDisplay on HomeSection {
   bool get isPaidFeature {
     switch (this) {
       case HomeSection.saved:
-      case HomeSection.donations:
         return true;
       case HomeSection.faq:
       case HomeSection.units:
