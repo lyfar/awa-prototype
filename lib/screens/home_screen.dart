@@ -907,23 +907,23 @@ class _HomeScreenState extends State<HomeScreen> {
     return Positioned(
       left: 0,
       right: 0,
-      bottom: 16 + MediaQuery.of(context).padding.bottom,
+      bottom: 20 + MediaQuery.of(context).padding.bottom,
       child: Center(
         child: GestureDetector(
           onTap: _handleMiniStartTap,
           onLongPress: _handleMiniStartLongPress,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            width: 78,
-            height: 78,
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: _activeButtonGradient,
               boxShadow: [
                 BoxShadow(
-                  color: _emberPeach.withOpacity(0.35),
-                  blurRadius: 18,
-                  offset: const Offset(0, 10),
+                  color: _emberPeach.withOpacity(0.32),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
                 ),
               ],
               border: Border.all(color: Colors.white, width: 2),
@@ -1320,7 +1320,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _activeSection == HomeSection.home
             ? _buildExperienceSurface()
             : Padding(
-                padding: EdgeInsets.only(bottom: _showMiniStart ? 90.0 : 0.0),
+                padding: EdgeInsets.only(
+                  bottom: _showMiniStart ? 110.0 : 0.0,
+                ),
                 child: _buildSectionContent(_activeSection),
               );
 
