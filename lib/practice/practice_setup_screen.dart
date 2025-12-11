@@ -11,12 +11,14 @@ class PracticeSetupScreen extends StatefulWidget {
   final PracticeTypeGroup practiceGroup;
   final Practice? preselectedPractice;
   final Duration? preselectedDuration;
+  final bool isPaidUser;
 
   const PracticeSetupScreen({
     super.key,
     required this.practiceGroup,
     this.preselectedPractice,
     this.preselectedDuration,
+    this.isPaidUser = false,
   });
 
   @override
@@ -53,7 +55,11 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
       _steps.add(SetupStep.myPracticeDuration);
       _steps.add(SetupStep.ready);
     } else {
-      if (widget.practiceGroup.hasRotation && widget.practiceGroup.variants.length > 1) {
+      final bool shouldShowVariantStep =
+          widget.practiceGroup.hasRotation &&
+          widget.practiceGroup.variants.length > 1 &&
+          widget.preselectedPractice == null;
+      if (shouldShowVariantStep) {
         _steps.add(SetupStep.variant);
       }
       if (_selectedPractice.hasCustomDuration) {
@@ -81,20 +87,25 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
     }
   }
 
-  void _startPractice() {
+  Future<void> _startPractice() async {
     final modalityInfo = _isMyPractice && _selectedModality != null 
         ? ' (${_selectedModality!.name})' 
         : '';
     print('PracticeSetupScreen: Starting practice - ${_selectedPractice.getName()}$modalityInfo for ${_selectedDuration.inMinutes} min');
-    Navigator.of(context).pushReplacement(
+    final result = await Navigator.of(context).push<PracticeCompletionResult>(
       MaterialPageRoute(
         builder: (context) => PracticeSessionScreen(
           practice: _selectedPractice,
           duration: _selectedDuration,
           modalityName: _selectedModality?.name,
+          isPaidUser: widget.isPaidUser,
         ),
       ),
     );
+    if (!mounted) return;
+    if (result != null) {
+      Navigator.of(context).pop(result);
+    }
   }
 
   void _selectVariant(Practice variant) {

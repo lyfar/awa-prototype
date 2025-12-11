@@ -20,7 +20,6 @@ import '../home/home_mission_service.dart';
 import '../home/home_state_loader.dart';
 import '../practice/practice_journey_screen.dart';
 import '../practice/practice_session_screen.dart';
-import '../practice/practice_feedback_screen.dart';
 import '../practice/practice_selector_screen.dart';
 import '../models/master_guide.dart';
 import '../practice/master_session_screen.dart';
@@ -193,8 +192,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Complete the practice session
-  Future<void> _completePractice({ReactionStateData? reaction}) async {
+  Future<void> _completePractice({
+    ReactionStateData? reaction,
+    Practice? practice,
+    Duration? duration,
+    Duration? actualDuration,
+    String? modalityName,
+  }) async {
     print('HomeScreen: Completing practice session');
+
+    final Practice? resolvedPractice = practice ?? _selectedPractice;
+    final Duration resolvedDuration =
+        actualDuration ?? duration ?? _selectedDuration;
 
     setState(() {
       _practiceState = PracticeFlowState.completing;
@@ -213,6 +222,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Mark practice as completed
       await PracticeService.markPracticeCompleted();
+
+      if (resolvedPractice != null) {
+        _logPracticeHistory(
+          practice: resolvedPractice,
+          duration: resolvedDuration,
+          reaction: reaction,
+          modalityName: modalityName,
+        );
+      }
 
       // Wait for transition animation
       await Future.delayed(const Duration(milliseconds: 2000));
@@ -297,7 +315,10 @@ class _HomeScreenState extends State<HomeScreen> {
         _practiceState = PracticeFlowState.practicing;
       });
     } else if (_practiceState == PracticeFlowState.practicing) {
-      _completePractice();
+      _completePractice(
+        practice: _selectedPractice,
+        duration: _selectedDuration,
+      );
     }
   }
 
@@ -330,7 +351,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _startPracticeFlow();
 
     // Navigate to the new AwaSoul-style practice selector
-    await Navigator.of(context).push(
+    final completion =
+        await Navigator.of(context).push<PracticeCompletionResult>(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 350),
         pageBuilder: (context, animation, _) {
@@ -345,8 +367,11 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    // When returning, reset the practice state
-    if (mounted) {
+    if (!mounted) return;
+
+    if (completion != null) {
+      await _handlePracticeCompletionResult(completion);
+    } else {
       setState(() {
         _practiceState = PracticeFlowState.home;
       });
@@ -442,7 +467,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _practiceState = PracticeFlowState.practicing;
     });
 
-    final sessionCompleted = await Navigator.of(context).push<bool>(
+    final completion = await Navigator.of(context).push<PracticeCompletionResult>(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 350),
         pageBuilder: (context, animation, _) {
@@ -451,27 +476,16 @@ class _HomeScreenState extends State<HomeScreen> {
             child: PracticeSessionScreen(
               practice: practice,
               duration: practiceDuration,
+              isPaidUser: _isPaidUser,
             ),
           );
         },
       ),
     );
 
-    if (sessionCompleted == true) {
-      final reaction = await Navigator.of(context).push<ReactionStateData>(
-        MaterialPageRoute(
-          builder: (_) => PracticeFeedbackScreen(practice: practice),
-        ),
-      );
-      await _completePractice(reaction: reaction);
-    } else {
-      if (mounted) {
-        setState(() {
-          _practiceState = PracticeFlowState.home;
-        });
-      }
-      _exitPractice();
-    }
+    if (!mounted) return;
+
+    await _handlePracticeCompletionResult(completion);
   }
 
   Future<bool> _showDoNotDisturbReminder({
@@ -1046,6 +1060,32 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _handlePracticeCompletionResult(
+    PracticeCompletionResult? result,
+  ) async {
+    if (result == null) {
+      _exitPractice();
+      return;
+    }
+
+    if (!result.completed) {
+      _exitPractice();
+      return;
+    }
+
+    _chosenPracticeType = result.practice.type;
+    _selectedPractice = result.practice;
+    _selectedDuration = result.plannedDuration;
+
+    await _completePractice(
+      reaction: result.reaction,
+      practice: result.practice,
+      duration: result.plannedDuration,
+      actualDuration: result.actualDuration,
+      modalityName: result.modalityName,
+    );
+  }
+
   List<Color> _buildReactionPalette() {
     if (_reactionStates.isEmpty) return [];
 
@@ -1077,6 +1117,49 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return colors;
+  }
+
+  void _logPracticeHistory({
+    required Practice practice,
+    required Duration duration,
+    ReactionStateData? reaction,
+    String? modalityName,
+  }) {
+    final now = DateTime.now();
+    final dateLabel = _formatHistoryDate(now);
+    final titleParts = [practice.getName()];
+    if (modalityName != null && modalityName.isNotEmpty) {
+      titleParts.add(modalityName);
+    }
+
+    final entry = PracticeHistoryEntry(
+      title: titleParts.join(' • '),
+      duration: duration,
+      dateLabel: dateLabel,
+      reactionKey: reaction?.key,
+    );
+
+    setState(() {
+      _historyEntries.insert(0, entry);
+    });
+  }
+
+  String _formatHistoryDate(DateTime timestamp) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dateOnly = DateTime(timestamp.year, timestamp.month, timestamp.day);
+    final daysDifference = today.difference(dateOnly).inDays;
+
+    final timeLabel =
+        '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
+
+    if (daysDifference == 0) return 'Today, $timeLabel';
+    if (daysDifference == 1) return 'Yesterday, $timeLabel';
+    if (daysDifference > 1 && daysDifference < 7) {
+      return '$daysDifference days ago, $timeLabel';
+    }
+
+    return '${timestamp.month}/${timestamp.day}, $timeLabel';
   }
 
   Duration _clampDurationForPractice(Practice practice, Duration duration) {

@@ -7,6 +7,7 @@ import '../soul/awa_sphere.dart';
 import 'components/floating_icons_overlay.dart';
 import 'components/practice_option_cards.dart';
 import 'components/practice_selector_sheets.dart';
+import 'practice_session_screen.dart';
 import 'practice_setup_screen.dart';
 
 /// Practice selector screen - AwaSoul guided selection of practice type
@@ -30,6 +31,7 @@ class _PracticeSelectorScreenState extends State<PracticeSelectorScreen> {
   int _selectedSavedIndex = 0;
   late List<PracticeTypeGroup> _groups;
   late List<SavedPractice> _savedPractices;
+  final Map<PracticeType, String> _selectedVariantIds = {};
   bool _showingSaved = false;
   double _sphereEnergy = 0.0;
 
@@ -48,6 +50,9 @@ class _PracticeSelectorScreenState extends State<PracticeSelectorScreen> {
     super.initState();
     print('PracticeSelectorScreen: Initializing practice selector');
     _groups = Practices.getGrouped();
+    for (final group in _groups) {
+      _selectedVariantIds[group.type] = group.primaryPractice.id;
+    }
     _savedPractices = List.of(HomeDemoData.savedPractices);
   }
 
@@ -71,6 +76,15 @@ class _PracticeSelectorScreenState extends State<PracticeSelectorScreen> {
     setState(() => _selectedIndex = index);
   }
 
+  void _selectVariant(PracticeType type, String practiceId) {
+    final current = _selectedVariantIds[type];
+    if (current == practiceId) return;
+    _triggerEnergyBurst();
+    setState(() {
+      _selectedVariantIds[type] = practiceId;
+    });
+  }
+
   void _selectSaved(int index) {
     if (_selectedSavedIndex != index) {
       _triggerEnergyBurst();
@@ -78,7 +92,7 @@ class _PracticeSelectorScreenState extends State<PracticeSelectorScreen> {
     setState(() => _selectedSavedIndex = index);
   }
 
-  void _continueToSetup() {
+  Future<void> _continueToSetup() async {
     if (_showingSaved) {
       final saved = _savedPractices[_selectedSavedIndex];
       print(
@@ -88,26 +102,42 @@ class _PracticeSelectorScreenState extends State<PracticeSelectorScreen> {
         (g) => g.variants.any((p) => p.id == saved.practice.id),
         orElse: () => _groups.first,
       );
-      Navigator.of(context).push(
+      final result = await Navigator.of(context).push<PracticeCompletionResult>(
         MaterialPageRoute(
           builder:
               (context) => PracticeSetupScreen(
                 practiceGroup: group,
                 preselectedPractice: saved.practice,
                 preselectedDuration: saved.duration,
+                isPaidUser: widget.isPaidUser,
               ),
         ),
       );
+      if (!mounted) return;
+      if (result != null) {
+        Navigator.of(context).pop(result);
+      }
     } else {
       final selected = _groups[_selectedIndex];
+      final selectedPractice = _selectedPracticeFor(selected);
       print(
         'PracticeSelectorScreen: Selected ${selected.displayName}, navigating to setup',
       );
-      Navigator.of(context).push(
+      final result = await Navigator.of(context).push<PracticeCompletionResult>(
         MaterialPageRoute(
-          builder: (context) => PracticeSetupScreen(practiceGroup: selected),
+          builder:
+              (context) => PracticeSetupScreen(
+                practiceGroup: selected,
+                preselectedPractice: selectedPractice,
+                preselectedDuration: selectedPractice.duration,
+                isPaidUser: widget.isPaidUser,
+              ),
         ),
       );
+      if (!mounted) return;
+      if (result != null) {
+        Navigator.of(context).pop(result);
+      }
     }
   }
 
@@ -351,7 +381,10 @@ class _PracticeSelectorScreenState extends State<PracticeSelectorScreen> {
 
   Widget _buildDynamicButton() {
     final selectedGroup = _groups[_selectedIndex];
-    final buttonText = 'Choose ${selectedGroup.displayName}';
+    final selectedPractice = _selectedPracticeFor(selectedGroup);
+    final buttonText = selectedGroup.hasRotation
+        ? 'Choose ${selectedPractice.getName()}'
+        : 'Choose ${selectedGroup.displayName}';
     final color = iconColors[_selectedIndex % iconColors.length];
 
     return Container(
@@ -388,18 +421,94 @@ class _PracticeSelectorScreenState extends State<PracticeSelectorScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       itemBuilder: (context, index) {
         final group = _groups[index];
+        final practiceAccent = iconColors[index % iconColors.length];
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
-          child: PracticeTypeOptionCard(
-            group: group,
-            isSelected: index == _selectedIndex,
-            iconColor: iconColors[index % iconColors.length],
-            onTap: () => _selectPractice(index),
-            onInfoTap: () => _showPracticeInfo(group),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              PracticeTypeOptionCard(
+                group: group,
+                isSelected: index == _selectedIndex,
+                iconColor: practiceAccent,
+                onTap: () => _selectPractice(index),
+                onInfoTap: () => _showPracticeInfo(group),
+              ),
+              if (group.hasRotation && group.variants.length > 1)
+                Padding(
+                  padding: const EdgeInsets.only(left: 12, right: 12, top: 8),
+                  child: _buildVariantChips(
+                    group: group,
+                    accent: practiceAccent,
+                  ),
+                ),
+            ],
           ),
         );
       },
     );
+  }
+
+  Widget _buildVariantChips({
+    required PracticeTypeGroup group,
+    required Color accent,
+  }) {
+    final selectedId = _selectedVariantIds[group.type] ?? group.primaryPractice.id;
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: group.variants.map((practice) {
+        final isSelected = practice.id == selectedId;
+        final label = _variantLabel(practice);
+        return ChoiceChip(
+          label: Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: isSelected ? Colors.white : accent,
+            ),
+          ),
+          selected: isSelected,
+          onSelected: (_) => _selectVariant(group.type, practice.id),
+          selectedColor: accent,
+          backgroundColor: accent.withOpacity(0.08),
+          shape: StadiumBorder(
+            side: BorderSide(
+              color: isSelected ? accent : accent.withOpacity(0.4),
+              width: 1.2,
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Practice _selectedPracticeFor(PracticeTypeGroup group) {
+    final selectedId = _selectedVariantIds[group.type];
+    if (selectedId != null) {
+      final match = group.variants.firstWhere(
+        (p) => p.id == selectedId,
+        orElse: () => group.primaryPractice,
+      );
+      return match;
+    }
+    return group.primaryPractice;
+  }
+
+  String _variantLabel(Practice practice) {
+    switch (practice.freshness) {
+      case PracticeFreshness.today:
+        return 'Today • ${practice.durationLabel}';
+      case PracticeFreshness.yesterday:
+        return 'Yesterday • ${practice.durationLabel}';
+      case PracticeFreshness.monthly:
+        return 'This month';
+      case PracticeFreshness.always:
+        return 'Always on';
+      case PracticeFreshness.timed:
+        return 'Timed • ${practice.durationLabel}';
+    }
   }
 
   Widget _buildSavedList() {
