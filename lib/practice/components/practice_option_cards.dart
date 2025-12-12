@@ -42,6 +42,8 @@ class PracticeTypeOptionCard extends StatelessWidget {
   final Color iconColor;
   final VoidCallback onTap;
   final VoidCallback onInfoTap;
+  final String? badgeLabel;
+  final bool showNewBadge;
 
   const PracticeTypeOptionCard({
     super.key,
@@ -50,6 +52,8 @@ class PracticeTypeOptionCard extends StatelessWidget {
     required this.iconColor,
     required this.onTap,
     required this.onInfoTap,
+    this.badgeLabel,
+    this.showNewBadge = false,
   });
 
   @override
@@ -97,13 +101,37 @@ class PracticeTypeOptionCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    group.displayName,
-                    style: GoogleFonts.urbanist(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
-                    ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          group.displayName,
+                          style: GoogleFonts.urbanist(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (badgeLabel != null) ...[
+                        const SizedBox(width: 8),
+                        _Badge(
+                          label: badgeLabel!,
+                          background: Colors.black.withValues(alpha: 0.06),
+                          foreground: Colors.black54,
+                        ),
+                      ],
+                      if (showNewBadge) ...[
+                        const SizedBox(width: 6),
+                        const _Badge(
+                          label: 'New',
+                          background: Color(0xFF4CAF50),
+                          foreground: Colors.white,
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -156,6 +184,38 @@ class PracticeTypeOptionCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  final String label;
+  final Color background;
+  final Color foreground;
+
+  const _Badge({
+    required this.label,
+    required this.background,
+    required this.foreground,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.urbanist(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: foreground,
+          letterSpacing: 0.2,
         ),
       ),
     );
@@ -289,6 +349,8 @@ class SavedPracticeOptionCard extends StatelessWidget {
     );
   }
 }
+
+
 
 
 

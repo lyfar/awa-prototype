@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:awa_01_spark/main.dart';
+import 'package:awa_01_spark/screens/loading_screen.dart';
 
 void main() {
   testWidgets('App loads correctly', (WidgetTester tester) async {
@@ -16,7 +17,7 @@ void main() {
     await tester.pumpWidget(const MindfulnessApp());
 
     // Verify that the loading screen appears
-    expect(find.text('Loading Mindfulness...'), findsOneWidget);
-    expect(find.byIcon(Icons.spa), findsOneWidget);
+    expect(find.byType(LoadingScreen), findsOneWidget);
+    expect(find.text('Awaterra'), findsOneWidget);
   });
 }

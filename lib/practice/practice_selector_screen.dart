@@ -76,11 +76,18 @@ class _PracticeSelectorScreenState extends State<PracticeSelectorScreen> {
     setState(() => _selectedIndex = index);
   }
 
-  void _selectVariant(PracticeType type, String practiceId) {
-    final current = _selectedVariantIds[type];
-    if (current == practiceId) return;
+  void _selectPracticeVariant({
+    required int groupIndex,
+    required PracticeType type,
+    required String practiceId,
+  }) {
+    final currentVariantId = _selectedVariantIds[type];
+    final selectionChanged =
+        _selectedIndex != groupIndex || currentVariantId != practiceId;
+    if (!selectionChanged) return;
     _triggerEnergyBurst();
     setState(() {
+      _selectedIndex = groupIndex;
       _selectedVariantIds[type] = practiceId;
     });
   }
@@ -416,72 +423,80 @@ class _PracticeSelectorScreenState extends State<PracticeSelectorScreen> {
   }
 
   Widget _buildPracticeList() {
+    final entries = _buildPracticeListEntries();
+
     return ListView.builder(
-      itemCount: _groups.length,
+      itemCount: entries.length,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       itemBuilder: (context, index) {
-        final group = _groups[index];
-        final practiceAccent = iconColors[index % iconColors.length];
+        final entry = entries[index];
+        final group = entry.group;
+        final practiceAccent = iconColors[entry.groupIndex % iconColors.length];
+        final selectedVariantId =
+            _selectedVariantIds[group.type] ?? group.primaryPractice.id;
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              PracticeTypeOptionCard(
-                group: group,
-                isSelected: index == _selectedIndex,
-                iconColor: practiceAccent,
-                onTap: () => _selectPractice(index),
-                onInfoTap: () => _showPracticeInfo(group),
-              ),
-              if (group.hasRotation && group.variants.length > 1)
-                Padding(
-                  padding: const EdgeInsets.only(left: 12, right: 12, top: 8),
-                  child: _buildVariantChips(
-                    group: group,
-                    accent: practiceAccent,
-                  ),
-                ),
-            ],
+          child: PracticeTypeOptionCard(
+            group: group,
+            isSelected:
+                entry.practice == null
+                    ? entry.groupIndex == _selectedIndex
+                    : entry.groupIndex == _selectedIndex &&
+                        entry.practice!.id == selectedVariantId,
+            iconColor: practiceAccent,
+            badgeLabel: entry.badgeLabel,
+            showNewBadge: entry.showNewBadge,
+            onTap: () {
+              if (entry.practice == null) {
+                _selectPractice(entry.groupIndex);
+                return;
+              }
+              _selectPracticeVariant(
+                groupIndex: entry.groupIndex,
+                type: group.type,
+                practiceId: entry.practice!.id,
+              );
+            },
+            onInfoTap: () => _showPracticeInfo(group),
           ),
         );
       },
     );
   }
 
-  Widget _buildVariantChips({
-    required PracticeTypeGroup group,
-    required Color accent,
-  }) {
-    final selectedId = _selectedVariantIds[group.type] ?? group.primaryPractice.id;
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: group.variants.map((practice) {
-        final isSelected = practice.id == selectedId;
-        final label = _variantLabel(practice);
-        return ChoiceChip(
-          label: Text(
-            label,
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              color: isSelected ? Colors.white : accent,
-            ),
-          ),
-          selected: isSelected,
-          onSelected: (_) => _selectVariant(group.type, practice.id),
-          selectedColor: accent,
-          backgroundColor: accent.withOpacity(0.08),
-          shape: StadiumBorder(
-            side: BorderSide(
-              color: isSelected ? accent : accent.withOpacity(0.4),
-              width: 1.2,
-            ),
-          ),
+  List<_PracticeListEntry> _buildPracticeListEntries() {
+    final entries = <_PracticeListEntry>[];
+    for (var groupIndex = 0; groupIndex < _groups.length; groupIndex++) {
+      final group = _groups[groupIndex];
+      if (group.hasRotation && group.variants.length > 1) {
+        final variants = List<Practice>.of(group.variants);
+        variants.sort(
+          (a, b) =>
+              _freshnessRank(a.freshness).compareTo(_freshnessRank(b.freshness)),
         );
-      }).toList(),
-    );
+        for (final practice in variants) {
+          entries.add(_PracticeListEntry.fromVariant(groupIndex, group, practice));
+        }
+      } else {
+        entries.add(_PracticeListEntry.fromGroup(groupIndex, group));
+      }
+    }
+    return entries;
+  }
+
+  int _freshnessRank(PracticeFreshness freshness) {
+    switch (freshness) {
+      case PracticeFreshness.today:
+        return 0;
+      case PracticeFreshness.yesterday:
+        return 1;
+      case PracticeFreshness.monthly:
+        return 2;
+      case PracticeFreshness.always:
+        return 3;
+      case PracticeFreshness.timed:
+        return 4;
+    }
   }
 
   Practice _selectedPracticeFor(PracticeTypeGroup group) {
@@ -494,21 +509,6 @@ class _PracticeSelectorScreenState extends State<PracticeSelectorScreen> {
       return match;
     }
     return group.primaryPractice;
-  }
-
-  String _variantLabel(Practice practice) {
-    switch (practice.freshness) {
-      case PracticeFreshness.today:
-        return 'Today • ${practice.durationLabel}';
-      case PracticeFreshness.yesterday:
-        return 'Yesterday • ${practice.durationLabel}';
-      case PracticeFreshness.monthly:
-        return 'This month';
-      case PracticeFreshness.always:
-        return 'Always on';
-      case PracticeFreshness.timed:
-        return 'Timed • ${practice.durationLabel}';
-    }
   }
 
   Widget _buildSavedList() {
@@ -553,6 +553,53 @@ class _PracticeSelectorScreenState extends State<PracticeSelectorScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class _PracticeListEntry {
+  final int groupIndex;
+  final PracticeTypeGroup group;
+  final Practice? practice;
+  final String? badgeLabel;
+  final bool showNewBadge;
+
+  const _PracticeListEntry._({
+    required this.groupIndex,
+    required this.group,
+    required this.practice,
+    required this.badgeLabel,
+    required this.showNewBadge,
+  });
+
+  factory _PracticeListEntry.fromGroup(int groupIndex, PracticeTypeGroup group) {
+    return _PracticeListEntry._(
+      groupIndex: groupIndex,
+      group: group,
+      practice: null,
+      badgeLabel: null,
+      showNewBadge: false,
+    );
+  }
+
+  factory _PracticeListEntry.fromVariant(
+    int groupIndex,
+    PracticeTypeGroup group,
+    Practice practice,
+  ) {
+    final badgeLabel = switch (practice.freshness) {
+      PracticeFreshness.today => 'Today',
+      PracticeFreshness.yesterday => 'Yesterday',
+      PracticeFreshness.monthly => 'This month',
+      PracticeFreshness.always => 'Always on',
+      PracticeFreshness.timed => 'Timed',
+    };
+    return _PracticeListEntry._(
+      groupIndex: groupIndex,
+      group: group,
+      practice: practice,
+      badgeLabel: badgeLabel,
+      showNewBadge: practice.freshness == PracticeFreshness.today,
     );
   }
 }
